@@ -1,6 +1,7 @@
 import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/themes/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -12,6 +13,7 @@ class App extends StatelessWidget {
       title: 'Flutter Demo',
       theme: appTheme,
       routerConfig: appRouter,
+      builder: EasyLoading.init(),
     );
   }
 }
