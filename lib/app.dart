@@ -1,9 +1,12 @@
 import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/themes/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 
 class App extends StatelessWidget {
-  const App({super.key});
+  App({super.key});
+
+  final _appRouter = AppRouter();
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +14,8 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: appTheme,
-      routerConfig: appRouter,
+      routerConfig: _appRouter.config(),
+      builder: EasyLoading.init(),
     );
   }
 }
