@@ -5,6 +5,15 @@ import 'package:flutter/material.dart';
 
 final appTheme = ThemeData(
   scaffoldBackgroundColor: AppColor.lightGrey,
+  brightness: Brightness.light,
+  appBarTheme: AppBarTheme(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    centerTitle: false,
+    titleTextStyle: AppText.semiBold24.copyWith(
+      color: AppColor.black,
+    ),
+  ),
   primaryColor: AppColor.lightBlue,
   fontFamily: 'Poppins',
   elevatedButtonTheme: ElevatedButtonThemeData(
@@ -21,5 +30,4 @@ final appTheme = ThemeData(
       textStyle: AppText.semiBold20,
     ),
   ),
-  
 );

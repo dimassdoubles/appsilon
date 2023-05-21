@@ -4,4 +4,6 @@ import 'package:dartz/dartz.dart';
 abstract class AuthRepo {
   Future<Either<Failure, void>> signIn(
       {required String username, required String password});
+
+  Future<Either<Failure, void>> signOut();
 }
