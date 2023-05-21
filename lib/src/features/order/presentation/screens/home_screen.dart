@@ -133,44 +133,40 @@ class HomeScreen extends StatelessWidget {
           ),
           const MiniSpace(),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSize.paddingRegular),
-              child: SingleChildScrollView(
-                child: Column(
-                  children: const [
-                    TransactionCard(
-                      transactionId: 'TRX051223001',
-                      customer: 'Anjani',
-                      service: 'Cuci Setrika Kiloan',
-                      price: '30.000',
-                      isPaid: true,
-                    ),
-                    MiniSpace(),
-                    TransactionCard(
-                      transactionId: 'TRX051223002',
-                      customer: 'Areka',
-                      service: 'Strika',
-                      price: '10.000',
-                    ),
-                    MiniSpace(),
-                    TransactionCard(
-                      transactionId: 'TRX051223003',
-                      customer: 'Dimas',
-                      service: 'Langganan',
-                      price: '120.000',
-                    ),
-                    MiniSpace(),
-                    TransactionCard(
-                      transactionId: 'TRX051223004',
-                      customer: 'Serana',
-                      service: 'Cuci Setrika Satuan',
-                      price: '24.000',
-                      isPaid: true,
-                    ),
-                    EndSpace()
-                  ],
-                ),
+            child: SingleChildScrollView(
+              child: Column(
+                children: const [
+                  TransactionCard(
+                    transactionId: 'TRX051223001',
+                    customer: 'Anjani',
+                    service: 'Cuci Setrika Kiloan',
+                    price: '30.000',
+                    isPaid: true,
+                  ),
+                  MiniSpace(),
+                  TransactionCard(
+                    transactionId: 'TRX051223002',
+                    customer: 'Areka',
+                    service: 'Strika',
+                    price: '10.000',
+                  ),
+                  MiniSpace(),
+                  TransactionCard(
+                    transactionId: 'TRX051223003',
+                    customer: 'Dimas',
+                    service: 'Langganan',
+                    price: '120.000',
+                  ),
+                  MiniSpace(),
+                  TransactionCard(
+                    transactionId: 'TRX051223004',
+                    customer: 'Serana',
+                    service: 'Cuci Setrika Satuan',
+                    price: '24.000',
+                    isPaid: true,
+                  ),
+                  EndSpace()
+                ],
               ),
             ),
           )
