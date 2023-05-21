@@ -3,15 +3,14 @@ import 'package:appsilon/src/themes/app_size.dart';
 import 'package:flutter/material.dart';
 
 class StyledContainer extends StatelessWidget {
-  const StyledContainer({
-    super.key,
-    Widget? child,
-    double? width,
-    double? height,
-  })  : _child = child,
+  const StyledContainer(
+      {super.key, Widget? child, double? width, double? height, Color? color})
+      : _child = child,
         _width = width,
-        _height = height;
+        _height = height,
+        _color = color;
 
+  final Color? _color;
   final double? _width, _height;
   final Widget? _child;
 
@@ -22,7 +21,7 @@ class StyledContainer extends StatelessWidget {
       height: _height,
       padding: const EdgeInsets.all(AppSize.paddingRegular),
       decoration: BoxDecoration(
-          color: Colors.white,
+          color: _color ?? Colors.white,
           borderRadius: BorderRadius.circular(
             AppSize.borderRadiusRegular,
           ),

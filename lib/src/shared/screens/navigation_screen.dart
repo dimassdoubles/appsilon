@@ -35,9 +35,18 @@ class NavigationScreen extends StatelessWidget {
         //
         //alterntivly you could use a global key
         return Scaffold(
+          extendBody: true,
           body: child,
           bottomNavigationBar: DotNavigationBar(
-            selectedItemColor: AppColor.lightBlue,
+            selectedItemColor: Colors.white,
+            backgroundColor: AppColor.lightBlue,
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 26,
+                offset: const Offset(0, 10),
+                color: Colors.black.withOpacity(0.15),
+              )
+            ],
             marginR: const EdgeInsets.symmetric(
                 horizontal: AppSize.paddingMedium,
                 vertical: AppSize.paddingMini),
@@ -52,13 +61,30 @@ class NavigationScreen extends StatelessWidget {
             },
             items: [
               DotNavigationBarItem(
-                  icon: SvgPicture.asset('assets/icons/home.svg')),
+                icon: SvgPicture.asset(
+                  'assets/icons/home.svg',
+                  colorFilter:
+                      const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                ),
+              ),
               DotNavigationBarItem(
-                  icon: SvgPicture.asset('assets/icons/report.svg')),
+                  icon: SvgPicture.asset(
+                'assets/icons/report.svg',
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              )),
               DotNavigationBarItem(
-                  icon: SvgPicture.asset('assets/icons/user.svg')),
+                  icon: SvgPicture.asset(
+                'assets/icons/user.svg',
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              )),
               DotNavigationBarItem(
-                  icon: SvgPicture.asset('assets/icons/settings.svg')),
+                  icon: SvgPicture.asset(
+                'assets/icons/settings.svg',
+                colorFilter:
+                    const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              )),
             ],
           ),
         );
