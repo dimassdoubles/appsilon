@@ -16,10 +16,10 @@ class NavigationScreen extends StatelessWidget {
       // list of your tab routes
       // routes used here must be declared as children
       // routes of /dashboard
-      routes: const [
-        HomeRoute(),
-        ReportRoute(),
-        SubscriptionRoute(),
+      routes: [
+        const HomeRoute(),
+        const ReportRoute(),
+        const SubscriptionRoute(),
         SettingsRoute(),
       ],
       transitionBuilder: (context, child, animation) => FadeTransition(

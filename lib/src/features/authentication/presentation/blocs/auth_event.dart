@@ -5,3 +5,5 @@ class EvSignIn extends AuthEvent {
 
   EvSignIn({required this.username, required this.password});
 }
+
+class EvSignOut extends AuthEvent {}

@@ -5,6 +5,7 @@ import 'package:appsilon/src/features/report/presentation/screens/report_screen.
 import 'package:appsilon/src/features/subscription/presentation/screens/subscription_screen.dart';
 import 'package:appsilon/src/shared/screens/navigation_screen.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/material.dart';
 
 part 'app_router.gr.dart';
 

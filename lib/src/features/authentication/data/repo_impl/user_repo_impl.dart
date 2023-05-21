@@ -29,4 +29,15 @@ class AuthRepoImpl implements AuthRepo {
       return Left(UnhandledFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> signOut() async {
+    try {
+      final result = await _remoteSource.signOut();
+      return Right(result);
+    } catch (e) {
+      log(e.toString());
+      return Left(UnhandledFailure(e.toString()));
+    }
+  }
 }
