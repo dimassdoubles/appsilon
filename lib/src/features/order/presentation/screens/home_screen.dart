@@ -1,5 +1,8 @@
+import 'dart:developer';
+
 import 'package:appsilon/src/features/order/presentation/widgets/service_card.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/transaction_card.dart';
+import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/shared/widgets/space/end_space.dart';
 import 'package:appsilon/src/shared/widgets/space/mini_space.dart';
 import 'package:appsilon/src/shared/widgets/space/regular_space.dart';
@@ -94,29 +97,35 @@ class HomeScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.only(bottom: AppSize.paddingMedium),
               child: Row(
-                children: const [
-                  RegularSpace(
+                children: [
+                  const RegularSpace(
                     orientation: Orientation.landscape,
                   ),
                   ServiceCard(
+                    onTap: () {
+                      log("cuci setrika di klik");
+                      context.router.push(CreateOrderRoute());
+                    },
                     image: 'assets/icons/washing-machine.png',
                     label: 'Cuci Setrika',
                   ),
-                  RegularSpace(
+                  const RegularSpace(
                     orientation: Orientation.landscape,
                   ),
                   ServiceCard(
+                    onTap: () {},
                     image: 'assets/icons/iron.png',
                     label: 'Setrika',
                   ),
-                  RegularSpace(
+                  const RegularSpace(
                     orientation: Orientation.landscape,
                   ),
                   ServiceCard(
+                    onTap: () {},
                     image: 'assets/icons/subscription-service.png',
                     label: 'Langganan',
                   ),
-                  RegularSpace(
+                  const RegularSpace(
                     orientation: Orientation.landscape,
                   ),
                 ],

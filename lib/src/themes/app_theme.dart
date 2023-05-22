@@ -7,13 +7,13 @@ final appTheme = ThemeData(
   scaffoldBackgroundColor: AppColor.lightGrey,
   brightness: Brightness.light,
   appBarTheme: AppBarTheme(
-    backgroundColor: Colors.transparent,
-    elevation: 0,
-    centerTitle: false,
-    titleTextStyle: AppText.semiBold24.copyWith(
-      color: AppColor.black,
-    ),
-  ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      titleTextStyle: AppText.semiBold24.copyWith(
+        color: AppColor.black,
+      ),
+      iconTheme: const IconThemeData(color: AppColor.black)),
   primaryColor: AppColor.lightBlue,
   fontFamily: 'Poppins',
   elevatedButtonTheme: ElevatedButtonThemeData(
