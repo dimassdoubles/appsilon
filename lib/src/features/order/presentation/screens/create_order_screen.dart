@@ -50,8 +50,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         builder: (context, state) {
           if (state is SuccessGetServiceList) {
             return Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSize.paddingMedium),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSize.paddingRegular),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
