@@ -1,4 +1,4 @@
-# AppSilon <img src="https://github.com/dimassdoubles/appsilon/blob/main/assets/icons/945-9454419_nuff-said-show-me-the-code-flutter-bottom.png" height="40">
+# AppSilon <img src="https://github.com/dimassdoubles/appsilon/blob/main/assets/icons/945-9454419_nuff-said-show-me-the-code-flutter-bottom.png" height="36">
 
 ![](https://github.com/dimassdoubles/appsilon/blob/main/assets/icons/0354e580448fea50395b7ceef04f8d3d.gif)
 
@@ -12,7 +12,7 @@ In the modern age of technology, people's desire for convenience and efficiency 
 
 ## Connect with dimasdoubles
 
-<p align="center">
+<p align="left">
 <a href="https://instagram.com/dimassdoubles" target="blank"><img src=https://img.shields.io/badge/instagram-%23000000.svg?&style=for-the-badge&logo=instagram&logoColor=white alt=instagram style="margin-bottom: 5px;" /></a>
 
 <a href="https://www.linkedin.com/in/dimassdoubles" target="_blank">
