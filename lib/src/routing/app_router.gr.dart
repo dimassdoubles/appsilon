@@ -54,11 +54,9 @@ abstract class _$AppRouter extends RootStackRouter {
       );
     },
     CreateOrderRoute.name: (routeData) {
-      final args = routeData.argsAs<CreateOrderRouteArgs>(
-          orElse: () => const CreateOrderRouteArgs());
       return AutoRoutePage<dynamic>(
         routeData: routeData,
-        child: CreateOrderScreen(key: args.key),
+        child: const CreateOrderScreen(),
       );
     },
   };
@@ -165,29 +163,14 @@ class NavigationRoute extends PageRouteInfo<void> {
 
 /// generated route for
 /// [CreateOrderScreen]
-class CreateOrderRoute extends PageRouteInfo<CreateOrderRouteArgs> {
-  CreateOrderRoute({
-    Key? key,
-    List<PageRouteInfo>? children,
-  }) : super(
+class CreateOrderRoute extends PageRouteInfo<void> {
+  const CreateOrderRoute({List<PageRouteInfo>? children})
+      : super(
           CreateOrderRoute.name,
-          args: CreateOrderRouteArgs(key: key),
           initialChildren: children,
         );
 
   static const String name = 'CreateOrderRoute';
 
-  static const PageInfo<CreateOrderRouteArgs> page =
-      PageInfo<CreateOrderRouteArgs>(name);
-}
-
-class CreateOrderRouteArgs {
-  const CreateOrderRouteArgs({this.key});
-
-  final Key? key;
-
-  @override
-  String toString() {
-    return 'CreateOrderRouteArgs{key: $key}';
-  }
+  static const PageInfo<void> page = PageInfo<void>(name);
 }

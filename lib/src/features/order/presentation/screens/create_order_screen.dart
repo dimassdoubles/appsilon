@@ -2,6 +2,12 @@ import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_bloc.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_state.dart';
+import 'package:appsilon/src/features/order/presentation/widgets/drop_down_parfume.dart';
+import 'package:appsilon/src/shared/widgets/space/medium_space.dart';
+import 'package:appsilon/src/shared/widgets/space/regular_space.dart';
+import 'package:appsilon/src/themes/app_color.dart';
+import 'package:appsilon/src/themes/app_size.dart';
+import 'package:appsilon/src/themes/app_text.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -43,13 +49,42 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         bloc: _serviceBloc,
         builder: (context, state) {
           if (state is SuccessGetServiceList) {
-            return Center(
+            return Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSize.paddingMedium),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children:
-                    state.serviceList.map((e) => Text(e.serviceName)).toList(),
-              ),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pelanggan',
+                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
+                    ),
+                    const RegularSpace(),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSize.paddingRegular + 4),
+                      decoration: BoxDecoration(
+                        borderRadius:
+                            BorderRadius.circular(AppSize.borderRadiusRegular),
+                        color: AppColor.grey.withAlpha(100),
+                        border: Border.all(color: AppColor.grey),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Tambah Pelanggan',
+                          style:
+                              AppText.semiBold16.copyWith(color: AppColor.grey),
+                        ),
+                      ),
+                    ),
+                    const MediumSpace(),
+                    Text(
+                      'Parfum',
+                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
+                    ),
+                    const RegularSpace(),
+                    const DropDownParfume(),
+                  ]),
             );
           }
           return const SizedBox();

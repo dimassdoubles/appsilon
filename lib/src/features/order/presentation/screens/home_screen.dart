@@ -104,7 +104,7 @@ class HomeScreen extends StatelessWidget {
                   ServiceCard(
                     onTap: () {
                       log("cuci setrika di klik");
-                      context.router.push(CreateOrderRoute());
+                      context.router.push(const CreateOrderRoute());
                     },
                     image: 'assets/icons/washing-machine.png',
                     label: 'Cuci Setrika',
