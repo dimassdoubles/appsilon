@@ -3,6 +3,7 @@ import 'package:appsilon/src/features/order/presentation/blocs/service_bloc.dart
 import 'package:appsilon/src/features/order/presentation/blocs/service_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_state.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/drop_down_parfume.dart';
+import 'package:appsilon/src/features/order/presentation/widgets/input_kiloan.dart';
 import 'package:appsilon/src/shared/widgets/space/medium_space.dart';
 import 'package:appsilon/src/shared/widgets/space/regular_space.dart';
 import 'package:appsilon/src/themes/app_color.dart';
@@ -84,6 +85,13 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                     ),
                     const RegularSpace(),
                     const DropDownParfume(),
+                    const MediumSpace(),
+                    Text(
+                      'Kiloan',
+                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
+                    ),
+                    const RegularSpace(),
+                    const InputKiloan(),
                   ]),
             );
           }

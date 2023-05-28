@@ -20,7 +20,7 @@ Service _$ServiceFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$Service {
-  String get id => throw _privateConstructorUsedError;
+  int get id => throw _privateConstructorUsedError;
   @JsonKey(name: 'service_code')
   String get serviceCode => throw _privateConstructorUsedError;
   @JsonKey(name: 'service_name')
@@ -47,7 +47,7 @@ abstract class $ServiceCopyWith<$Res> {
       _$ServiceCopyWithImpl<$Res, Service>;
   @useResult
   $Res call(
-      {String id,
+      {int id,
       @JsonKey(name: 'service_code') String serviceCode,
       @JsonKey(name: 'service_name') String serviceName,
       int version,
@@ -85,7 +85,7 @@ class _$ServiceCopyWithImpl<$Res, $Val extends Service>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
+              as int,
       serviceCode: null == serviceCode
           ? _value.serviceCode
           : serviceCode // ignore: cast_nullable_to_non_nullable
@@ -130,7 +130,7 @@ abstract class _$$_ServiceCopyWith<$Res> implements $ServiceCopyWith<$Res> {
   @override
   @useResult
   $Res call(
-      {String id,
+      {int id,
       @JsonKey(name: 'service_code') String serviceCode,
       @JsonKey(name: 'service_name') String serviceName,
       int version,
@@ -165,7 +165,7 @@ class __$$_ServiceCopyWithImpl<$Res>
       id: null == id
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
-              as String,
+              as int,
       serviceCode: null == serviceCode
           ? _value.serviceCode
           : serviceCode // ignore: cast_nullable_to_non_nullable
@@ -221,7 +221,7 @@ class _$_Service with DiagnosticableTreeMixin implements _Service {
       _$$_ServiceFromJson(json);
 
   @override
-  final String id;
+  final int id;
   @override
   @JsonKey(name: 'service_code')
   final String serviceCode;
@@ -309,7 +309,7 @@ class _$_Service with DiagnosticableTreeMixin implements _Service {
 
 abstract class _Service implements Service {
   const factory _Service(
-      {required final String id,
+      {required final int id,
       @JsonKey(name: 'service_code') required final String serviceCode,
       @JsonKey(name: 'service_name') required final String serviceName,
       required final int version,
@@ -322,7 +322,7 @@ abstract class _Service implements Service {
   factory _Service.fromJson(Map<String, dynamic> json) = _$_Service.fromJson;
 
   @override
-  String get id;
+  int get id;
   @override
   @JsonKey(name: 'service_code')
   String get serviceCode;

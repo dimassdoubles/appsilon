@@ -8,7 +8,7 @@ part 'service.g.dart';
 class Service with _$Service {
   @JsonSerializable(explicitToJson: true)
   const factory Service(
-      {required String id,
+      {required int id,
       @JsonKey(name: 'service_code') required String serviceCode,
       @JsonKey(name: 'service_name') required String serviceName,
       required int version,

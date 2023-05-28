@@ -1,0 +1,3445 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 15.1
+-- Dumped by pg_dump version 15.2
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: auth; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA auth;
+
+
+--
+-- Name: extensions; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA extensions;
+
+
+--
+-- Name: graphql; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA graphql;
+
+
+--
+-- Name: graphql_public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA graphql_public;
+
+
+--
+-- Name: pgbouncer; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA pgbouncer;
+
+
+--
+-- Name: pgsodium; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA pgsodium;
+
+
+--
+-- Name: pgsodium; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgsodium WITH SCHEMA pgsodium;
+
+
+--
+-- Name: EXTENSION pgsodium; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pgsodium IS 'Pgsodium is a modern cryptography library for Postgres.';
+
+
+--
+-- Name: pgtle; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA pgtle;
+
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS '';
+
+
+--
+-- Name: realtime; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA realtime;
+
+
+--
+-- Name: storage; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA storage;
+
+
+--
+-- Name: vault; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA vault;
+
+
+--
+-- Name: pg_graphql; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_graphql WITH SCHEMA graphql;
+
+
+--
+-- Name: EXTENSION pg_graphql; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_graphql IS 'pg_graphql: GraphQL support';
+
+
+--
+-- Name: pg_stat_statements; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pg_stat_statements IS 'track planning and execution statistics of all SQL statements executed';
+
+
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
+--
+-- Name: pgjwt; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgjwt WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION pgjwt; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION pgjwt IS 'JSON Web Token API for Postgresql';
+
+
+--
+-- Name: supabase_vault; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
+
+
+--
+-- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION supabase_vault IS 'Supabase Vault Extension';
+
+
+--
+-- Name: uuid-ossp; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+
+
+--
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
+
+
+--
+-- Name: aal_level; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.aal_level AS ENUM (
+    'aal1',
+    'aal2',
+    'aal3'
+);
+
+
+--
+-- Name: code_challenge_method; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.code_challenge_method AS ENUM (
+    's256',
+    'plain'
+);
+
+
+--
+-- Name: factor_status; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.factor_status AS ENUM (
+    'unverified',
+    'verified'
+);
+
+
+--
+-- Name: factor_type; Type: TYPE; Schema: auth; Owner: -
+--
+
+CREATE TYPE auth.factor_type AS ENUM (
+    'totp',
+    'webauthn'
+);
+
+
+--
+-- Name: user_permission; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.user_permission AS ENUM (
+    'USER',
+    'ADMIN',
+    'CASHIER',
+    'MANAGER'
+);
+
+
+--
+-- Name: email(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.email() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
+  )::text
+$$;
+
+
+--
+-- Name: FUNCTION email(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' instead.';
+
+
+--
+-- Name: jwt(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.jwt() RETURNS jsonb
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+    coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+    )::jsonb
+$$;
+
+
+--
+-- Name: role(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.role() RETURNS text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
+$$;
+
+
+--
+-- Name: FUNCTION role(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' instead.';
+
+
+--
+-- Name: uid(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.uid() RETURNS uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
+$$;
+
+
+--
+-- Name: FUNCTION uid(); Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON FUNCTION auth.uid() IS 'Deprecated. Use auth.jwt() -> ''sub'' instead.';
+
+
+--
+-- Name: grant_pg_cron_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_cron_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  schema_is_cron bool;
+BEGIN
+  schema_is_cron = (
+    SELECT n.nspname = 'cron'
+    FROM pg_event_trigger_ddl_commands() AS ev
+    LEFT JOIN pg_catalog.pg_namespace AS n
+      ON ev.objid = n.oid
+  );
+
+  IF schema_is_cron
+  THEN
+    grant usage on schema cron to postgres with grant option;
+
+    alter default privileges in schema cron grant all on tables to postgres with grant option;
+    alter default privileges in schema cron grant all on functions to postgres with grant option;
+    alter default privileges in schema cron grant all on sequences to postgres with grant option;
+
+    alter default privileges for user supabase_admin in schema cron grant all
+        on sequences to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on tables to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on functions to postgres with grant option;
+
+    grant all privileges on all tables in schema cron to postgres with grant option;
+
+  END IF;
+
+END;
+$$;
+
+
+--
+-- Name: FUNCTION grant_pg_cron_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_cron_access() IS 'Grants access to pg_cron';
+
+
+--
+-- Name: grant_pg_graphql_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_graphql_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    func_is_graphql_resolve bool;
+BEGIN
+    func_is_graphql_resolve = (
+        SELECT n.proname = 'resolve'
+        FROM pg_event_trigger_ddl_commands() AS ev
+        LEFT JOIN pg_catalog.pg_proc AS n
+        ON ev.objid = n.oid
+    );
+
+    IF func_is_graphql_resolve
+    THEN
+        -- Update public wrapper to pass all arguments through to the pg_graphql resolve func
+        DROP FUNCTION IF EXISTS graphql_public.graphql;
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language sql
+        as $$
+            select graphql.resolve(
+                query := query,
+                variables := coalesce(variables, '{}'),
+                "operationName" := "operationName",
+                extensions := extensions
+            );
+        $$;
+
+        -- This hook executes when `graphql.resolve` is created. That is not necessarily the last
+        -- function in the extension so we need to grant permissions on existing entities AND
+        -- update default permissions to any others that are created after `graphql.resolve`
+        grant usage on schema graphql to postgres, anon, authenticated, service_role;
+        grant select on all tables in schema graphql to postgres, anon, authenticated, service_role;
+        grant execute on all functions in schema graphql to postgres, anon, authenticated, service_role;
+        grant all on all sequences in schema graphql to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on tables to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on functions to postgres, anon, authenticated, service_role;
+        alter default privileges in schema graphql grant all on sequences to postgres, anon, authenticated, service_role;
+    END IF;
+
+END;
+$_$;
+
+
+--
+-- Name: FUNCTION grant_pg_graphql_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg_graphql';
+
+
+--
+-- Name: grant_pg_net_access(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.grant_pg_net_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_net'
+  )
+  THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_roles
+      WHERE rolname = 'supabase_functions_admin'
+    )
+    THEN
+      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+    END IF;
+
+    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+
+    ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+    ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+
+    ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+    ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+
+    REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+    REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+
+    GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+  END IF;
+END;
+$$;
+
+
+--
+-- Name: FUNCTION grant_pg_net_access(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.grant_pg_net_access() IS 'Grants access to pg_net';
+
+
+--
+-- Name: pgrst_ddl_watch(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.pgrst_ddl_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
+  LOOP
+    IF cmd.command_tag IN (
+      'CREATE SCHEMA', 'ALTER SCHEMA'
+    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'
+    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'
+    , 'CREATE VIEW', 'ALTER VIEW'
+    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'
+    , 'CREATE FUNCTION', 'ALTER FUNCTION'
+    , 'CREATE TRIGGER'
+    , 'CREATE TYPE', 'ALTER TYPE'
+    , 'CREATE RULE'
+    , 'COMMENT'
+    )
+    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp
+    AND cmd.schema_name is distinct from 'pg_temp'
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+--
+-- Name: pgrst_drop_watch(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.pgrst_drop_watch() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+  obj record;
+BEGIN
+  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+  LOOP
+    IF obj.object_type IN (
+      'schema'
+    , 'table'
+    , 'foreign table'
+    , 'view'
+    , 'materialized view'
+    , 'function'
+    , 'trigger'
+    , 'type'
+    , 'rule'
+    )
+    AND obj.is_temporary IS false -- no pg_temp objects
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
+END; $$;
+
+
+--
+-- Name: set_graphql_placeholder(); Type: FUNCTION; Schema: extensions; Owner: -
+--
+
+CREATE FUNCTION extensions.set_graphql_placeholder() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $_$
+    DECLARE
+    graphql_is_dropped bool;
+    BEGIN
+    graphql_is_dropped = (
+        SELECT ev.schema_name = 'graphql_public'
+        FROM pg_event_trigger_dropped_objects() AS ev
+        WHERE ev.schema_name = 'graphql_public'
+    );
+
+    IF graphql_is_dropped
+    THEN
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language plpgsql
+        as $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
+    END IF;
+
+    END;
+$_$;
+
+
+--
+-- Name: FUNCTION set_graphql_placeholder(); Type: COMMENT; Schema: extensions; Owner: -
+--
+
+COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeholder function for graphql_public.graphql';
+
+
+--
+-- Name: get_auth(text); Type: FUNCTION; Schema: pgbouncer; Owner: -
+--
+
+CREATE FUNCTION pgbouncer.get_auth(p_usename text) RETURNS TABLE(username text, password text)
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+BEGIN
+    RAISE WARNING 'PgBouncer auth request: %', p_usename;
+
+    RETURN QUERY
+    SELECT usename::TEXT, passwd::TEXT FROM pg_catalog.pg_shadow
+    WHERE usename = p_usename;
+END;
+$$;
+
+
+--
+-- Name: check_user_permission(uuid, public.user_permission[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_user_permission(user_id uuid, permission public.user_permission[]) RETURNS boolean
+    LANGUAGE sql SECURITY DEFINER
+    AS $_$
+  SELECT EXISTS (
+    SELECT users.id
+    FROM users
+    WHERE (users.id = $1) AND (users.permissions && $2)
+  )
+$_$;
+
+
+--
+-- Name: check_user_permission(uuid, public.user_permission); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.check_user_permission(user_id uuid, permission public.user_permission) RETURNS boolean
+    LANGUAGE sql SECURITY DEFINER
+    AS $_$
+  SELECT EXISTS ( SELECT users.id
+  FROM users
+  WHERE ((users.id = $1) AND ($2 = ANY (users.permissions))))
+$_$;
+
+
+--
+-- Name: hello_world(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.hello_world() RETURNS text
+    LANGUAGE sql
+    AS $$  -- 4
+  select 'hello world';  -- 5
+$$;
+
+
+--
+-- Name: can_insert_object(text, text, uuid, jsonb); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  INSERT INTO "storage"."objects" ("bucket_id", "name", "owner", "metadata") VALUES (bucketid, name, owner, metadata);
+  -- hack to rollback the successful insert
+  RAISE sqlstate 'PT200' using
+  message = 'ROLLBACK',
+  detail = 'rollback successful insert';
+END
+$$;
+
+
+--
+-- Name: extension(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.extension(name text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+_parts text[];
+_filename text;
+BEGIN
+    select string_to_array(name, '/') into _parts;
+    select _parts[array_length(_parts,1)] into _filename;
+    -- @todo return the last part instead of 2
+    return split_part(_filename, '.', 2);
+END
+$$;
+
+
+--
+-- Name: filename(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.filename(name text) RETURNS text
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+_parts text[];
+BEGIN
+    select string_to_array(name, '/') into _parts;
+    return _parts[array_length(_parts,1)];
+END
+$$;
+
+
+--
+-- Name: foldername(text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.foldername(name text) RETURNS text[]
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+_parts text[];
+BEGIN
+    select string_to_array(name, '/') into _parts;
+    return _parts[1:array_length(_parts,1)-1];
+END
+$$;
+
+
+--
+-- Name: get_size_by_bucket(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.get_size_by_bucket() RETURNS TABLE(size bigint, bucket_id text)
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    return query
+        select sum((metadata->>'size')::int) as size, obj.bucket_id
+        from "storage".objects as obj
+        group by obj.bucket_id;
+END
+$$;
+
+
+--
+-- Name: search(text, text, integer, integer, integer, text, text, text); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.search(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
+    LANGUAGE plpgsql STABLE
+    AS $_$
+declare
+  v_order_by text;
+  v_sort_order text;
+begin
+  case
+    when sortcolumn = 'name' then
+      v_order_by = 'name';
+    when sortcolumn = 'updated_at' then
+      v_order_by = 'updated_at';
+    when sortcolumn = 'created_at' then
+      v_order_by = 'created_at';
+    when sortcolumn = 'last_accessed_at' then
+      v_order_by = 'last_accessed_at';
+    else
+      v_order_by = 'name';
+  end case;
+
+  case
+    when sortorder = 'asc' then
+      v_sort_order = 'asc';
+    when sortorder = 'desc' then
+      v_sort_order = 'desc';
+    else
+      v_sort_order = 'asc';
+  end case;
+
+  v_order_by = v_order_by || ' ' || v_sort_order;
+
+  return query execute
+    'with folders as (
+       select path_tokens[$1] as folder
+       from storage.objects
+         where objects.name ilike $2 || $3 || ''%''
+           and bucket_id = $4
+           and array_length(regexp_split_to_array(objects.name, ''/''), 1) <> $1
+       group by folder
+       order by folder ' || v_sort_order || '
+     )
+     (select folder as "name",
+            null as id,
+            null as updated_at,
+            null as created_at,
+            null as last_accessed_at,
+            null as metadata from folders)
+     union all
+     (select path_tokens[$1] as "name",
+            id,
+            updated_at,
+            created_at,
+            last_accessed_at,
+            metadata
+     from storage.objects
+     where objects.name ilike $2 || $3 || ''%''
+       and bucket_id = $4
+       and array_length(regexp_split_to_array(objects.name, ''/''), 1) = $1
+     order by ' || v_order_by || ')
+     limit $5
+     offset $6' using levels, prefix, search, bucketname, limits, offsets;
+end;
+$_$;
+
+
+--
+-- Name: update_updated_at_column(); Type: FUNCTION; Schema: storage; Owner: -
+--
+
+CREATE FUNCTION storage.update_updated_at_column() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW; 
+END;
+$$;
+
+
+--
+-- Name: secrets_encrypt_secret_secret(); Type: FUNCTION; Schema: vault; Owner: -
+--
+
+CREATE FUNCTION vault.secrets_encrypt_secret_secret() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+		BEGIN
+		        new.secret = CASE WHEN new.secret IS NULL THEN NULL ELSE
+			CASE WHEN new.key_id IS NULL THEN NULL ELSE pg_catalog.encode(
+			  pgsodium.crypto_aead_det_encrypt(
+				pg_catalog.convert_to(new.secret, 'utf8'),
+				pg_catalog.convert_to((new.id::text || new.description::text || new.created_at::text || new.updated_at::text)::text, 'utf8'),
+				new.key_id::uuid,
+				new.nonce
+			  ),
+				'base64') END END;
+		RETURN new;
+		END;
+		$$;
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: audit_log_entries; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.audit_log_entries (
+    instance_id uuid,
+    id uuid NOT NULL,
+    payload json,
+    created_at timestamp with time zone,
+    ip_address character varying(64) DEFAULT ''::character varying NOT NULL
+);
+
+
+--
+-- Name: TABLE audit_log_entries; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.';
+
+
+--
+-- Name: flow_state; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.flow_state (
+    id uuid NOT NULL,
+    user_id uuid,
+    auth_code text NOT NULL,
+    code_challenge_method auth.code_challenge_method NOT NULL,
+    code_challenge text NOT NULL,
+    provider_type text NOT NULL,
+    provider_access_token text,
+    provider_refresh_token text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    authentication_method text NOT NULL
+);
+
+
+--
+-- Name: TABLE flow_state; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.flow_state IS 'stores metadata for pkce logins';
+
+
+--
+-- Name: identities; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.identities (
+    id text NOT NULL,
+    user_id uuid NOT NULL,
+    identity_data jsonb NOT NULL,
+    provider text NOT NULL,
+    last_sign_in_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED
+);
+
+
+--
+-- Name: TABLE identities; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.identities IS 'Auth: Stores identities associated to a user.';
+
+
+--
+-- Name: COLUMN identities.email; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.identities.email IS 'Auth: Email is a generated column that references the optional email property in the identity_data';
+
+
+--
+-- Name: instances; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.instances (
+    id uuid NOT NULL,
+    uuid uuid,
+    raw_base_config text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: TABLE instances; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.instances IS 'Auth: Manages users across multiple sites.';
+
+
+--
+-- Name: mfa_amr_claims; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_amr_claims (
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    authentication_method text NOT NULL,
+    id uuid NOT NULL
+);
+
+
+--
+-- Name: TABLE mfa_amr_claims; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_amr_claims IS 'auth: stores authenticator method reference claims for multi factor authentication';
+
+
+--
+-- Name: mfa_challenges; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_challenges (
+    id uuid NOT NULL,
+    factor_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    verified_at timestamp with time zone,
+    ip_address inet NOT NULL
+);
+
+
+--
+-- Name: TABLE mfa_challenges; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_challenges IS 'auth: stores metadata about challenge requests made';
+
+
+--
+-- Name: mfa_factors; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.mfa_factors (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    friendly_name text,
+    factor_type auth.factor_type NOT NULL,
+    status auth.factor_status NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    secret text
+);
+
+
+--
+-- Name: TABLE mfa_factors; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.mfa_factors IS 'auth: stores metadata about factors';
+
+
+--
+-- Name: refresh_tokens; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.refresh_tokens (
+    instance_id uuid,
+    id bigint NOT NULL,
+    token character varying(255),
+    user_id character varying(255),
+    revoked boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    parent character varying(255),
+    session_id uuid
+);
+
+
+--
+-- Name: TABLE refresh_tokens; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.refresh_tokens IS 'Auth: Store of tokens used to refresh JWT tokens once they expire.';
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE; Schema: auth; Owner: -
+--
+
+CREATE SEQUENCE auth.refresh_tokens_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: auth; Owner: -
+--
+
+ALTER SEQUENCE auth.refresh_tokens_id_seq OWNED BY auth.refresh_tokens.id;
+
+
+--
+-- Name: saml_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.saml_providers (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    entity_id text NOT NULL,
+    metadata_xml text NOT NULL,
+    metadata_url text,
+    attribute_mapping jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "entity_id not empty" CHECK ((char_length(entity_id) > 0)),
+    CONSTRAINT "metadata_url not empty" CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
+    CONSTRAINT "metadata_xml not empty" CHECK ((char_length(metadata_xml) > 0))
+);
+
+
+--
+-- Name: TABLE saml_providers; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.saml_providers IS 'Auth: Manages SAML Identity Provider connections.';
+
+
+--
+-- Name: saml_relay_states; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.saml_relay_states (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    request_id text NOT NULL,
+    for_email text,
+    redirect_to text,
+    from_ip_address inet,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "request_id not empty" CHECK ((char_length(request_id) > 0))
+);
+
+
+--
+-- Name: TABLE saml_relay_states; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.saml_relay_states IS 'Auth: Contains SAML Relay State information for each Service Provider initiated login.';
+
+
+--
+-- Name: schema_migrations; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.schema_migrations (
+    version character varying(255) NOT NULL
+);
+
+
+--
+-- Name: TABLE schema_migrations; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.schema_migrations IS 'Auth: Manages updates to the auth system.';
+
+
+--
+-- Name: sessions; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sessions (
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    factor_id uuid,
+    aal auth.aal_level,
+    not_after timestamp with time zone
+);
+
+
+--
+-- Name: TABLE sessions; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sessions IS 'Auth: Stores session data associated to a user.';
+
+
+--
+-- Name: COLUMN sessions.not_after; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sessions.not_after IS 'Auth: Not after is a nullable column that contains a timestamp after which the session should be regarded as expired.';
+
+
+--
+-- Name: sso_domains; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sso_domains (
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    domain text NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "domain not empty" CHECK ((char_length(domain) > 0))
+);
+
+
+--
+-- Name: TABLE sso_domains; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sso_domains IS 'Auth: Manages SSO email address domain mapping to an SSO Identity Provider.';
+
+
+--
+-- Name: sso_providers; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.sso_providers (
+    id uuid NOT NULL,
+    resource_id text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "resource_id not empty" CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
+);
+
+
+--
+-- Name: TABLE sso_providers; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.sso_providers IS 'Auth: Manages SSO identity provider information; see saml_providers for SAML.';
+
+
+--
+-- Name: COLUMN sso_providers.resource_id; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.sso_providers.resource_id IS 'Auth: Uniquely identifies a SSO provider according to a user-chosen resource ID (case insensitive), useful in infrastructure as code.';
+
+
+--
+-- Name: users; Type: TABLE; Schema: auth; Owner: -
+--
+
+CREATE TABLE auth.users (
+    instance_id uuid,
+    id uuid NOT NULL,
+    aud character varying(255),
+    role character varying(255),
+    email character varying(255),
+    encrypted_password character varying(255),
+    email_confirmed_at timestamp with time zone,
+    invited_at timestamp with time zone,
+    confirmation_token character varying(255),
+    confirmation_sent_at timestamp with time zone,
+    recovery_token character varying(255),
+    recovery_sent_at timestamp with time zone,
+    email_change_token_new character varying(255),
+    email_change character varying(255),
+    email_change_sent_at timestamp with time zone,
+    last_sign_in_at timestamp with time zone,
+    raw_app_meta_data jsonb,
+    raw_user_meta_data jsonb,
+    is_super_admin boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    phone text DEFAULT NULL::character varying,
+    phone_confirmed_at timestamp with time zone,
+    phone_change text DEFAULT ''::character varying,
+    phone_change_token character varying(255) DEFAULT ''::character varying,
+    phone_change_sent_at timestamp with time zone,
+    confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
+    email_change_token_current character varying(255) DEFAULT ''::character varying,
+    email_change_confirm_status smallint DEFAULT 0,
+    banned_until timestamp with time zone,
+    reauthentication_token character varying(255) DEFAULT ''::character varying,
+    reauthentication_sent_at timestamp with time zone,
+    is_sso_user boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
+);
+
+
+--
+-- Name: TABLE users; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON TABLE auth.users IS 'Auth: Stores user login data within a secure schema.';
+
+
+--
+-- Name: COLUMN users.is_sso_user; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when the account comes from SSO. These accounts can have duplicate emails.';
+
+
+--
+-- Name: ctgr; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ctgr (
+    ctgr_code character varying NOT NULL,
+    ctgr_name character varying,
+    create_username character varying,
+    update_username character varying,
+    version bigint DEFAULT '0'::bigint,
+    created_at bigint,
+    updated_at bigint,
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: TABLE ctgr; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.ctgr IS 'Service Category';
+
+
+--
+-- Name: customer; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    customer_name character varying,
+    phone character varying,
+    create_username character varying,
+    update_username character varying,
+    version bigint DEFAULT '0'::bigint,
+    created_at bigint,
+    updated_at bigint
+);
+
+
+--
+-- Name: TABLE customer; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customer IS 'Pelanggan';
+
+
+--
+-- Name: subscription_policy; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.subscription_policy (
+    id bigint NOT NULL,
+    created_at bigint,
+    periode bigint,
+    quota bigint,
+    version bigint,
+    update_at bigint,
+    create_username character varying,
+    update_username character varying,
+    service_id uuid
+);
+
+
+--
+-- Name: detail_subscription_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.subscription_policy ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.detail_subscription_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: handover; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.handover (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    transaction_id uuid,
+    delivery_type character varying,
+    create_username character varying,
+    created_at bigint
+);
+
+
+--
+-- Name: TABLE handover; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.handover IS 'Serah terima laundryan';
+
+
+--
+-- Name: laundry_item; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.laundry_item (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    item_code character varying,
+    item_name character varying,
+    create_username character varying,
+    update_username character varying,
+    version bigint DEFAULT '0'::bigint,
+    created_at bigint,
+    updated_at bigint
+);
+
+
+--
+-- Name: TABLE laundry_item; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.laundry_item IS 'Barang yang digunakan pada laundry satuan';
+
+
+--
+-- Name: parfume; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.parfume (
+    id bigint NOT NULL,
+    parfume_name character varying,
+    created_at bigint,
+    updated_at bigint,
+    create_username character varying,
+    update_username character varying,
+    parfume_code character varying,
+    version bigint
+);
+
+
+--
+-- Name: parfume_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.parfume ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.parfume_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: payment; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.payment (
+    id uuid NOT NULL,
+    transaction_id uuid,
+    amount bigint,
+    create_username character varying,
+    create_datetime timestamp without time zone DEFAULT (now() AT TIME ZONE 'utc'::text)
+);
+
+
+--
+-- Name: TABLE payment; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.payment IS 'Pembayaran';
+
+
+--
+-- Name: profile; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.profile (
+    user_id uuid,
+    full_name character varying NOT NULL,
+    permissions public.user_permission[] NOT NULL,
+    username character varying NOT NULL,
+    email character varying,
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL
+);
+
+
+--
+-- Name: service; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.service (
+    id bigint NOT NULL,
+    created_at bigint,
+    updated_at bigint,
+    create_username character varying,
+    update_username character varying,
+    sub_ctgr_id bigint,
+    service_name character varying,
+    price numeric,
+    version bigint DEFAULT '0'::bigint,
+    service_code character varying
+);
+
+
+--
+-- Name: service_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.service ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.service_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: sub_ctgr; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sub_ctgr (
+    sub_ctgr_name character varying,
+    create_username character varying,
+    update_username character varying,
+    version bigint DEFAULT '0'::bigint,
+    created_at bigint,
+    updated_at bigint,
+    id bigint NOT NULL,
+    ctgr_id bigint,
+    uom_id bigint,
+    sub_ctgr_code character varying
+);
+
+
+--
+-- Name: TABLE sub_ctgr; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.sub_ctgr IS 'Grup kategori';
+
+
+--
+-- Name: sub_ctgr_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sub_ctgr ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.sub_ctgr_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: subscription; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.subscription (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    transaction_id uuid,
+    version bigint,
+    quota bigint,
+    start_date timestamp without time zone,
+    create_username character varying,
+    update_username character varying,
+    created_at bigint,
+    updated_at bigint,
+    end_date timestamp without time zone
+);
+
+
+--
+-- Name: TABLE subscription; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.subscription IS 'Daftar langganan';
+
+
+--
+-- Name: transaction; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.transaction (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    transaction_code character varying,
+    service_id uuid,
+    customer_id uuid,
+    total bigint,
+    transaction_status character varying,
+    version bigint DEFAULT '0'::bigint,
+    create_username character varying,
+    update_username character varying,
+    created_at bigint,
+    updated_at bigint
+);
+
+
+--
+-- Name: TABLE transaction; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.transaction IS 'Transaksi layanan laundry';
+
+
+--
+-- Name: transaction_detail; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.transaction_detail (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    transaction_id uuid,
+    service_id uuid,
+    qty bigint,
+    price bigint,
+    create_username character varying,
+    created_at bigint,
+    update_username character varying,
+    updated_at bigint
+);
+
+
+--
+-- Name: TABLE transaction_detail; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.transaction_detail IS 'Detail transaksi';
+
+
+--
+-- Name: uom; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.uom (
+    uom_code character varying NOT NULL,
+    uom_name character varying DEFAULT ''::character varying,
+    create_username character varying,
+    update_username character varying,
+    version bigint DEFAULT '0'::bigint,
+    created_at bigint,
+    updated_at bigint,
+    id bigint NOT NULL
+);
+
+
+--
+-- Name: TABLE uom; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.uom IS 'Satuan Unit Aset';
+
+
+--
+-- Name: uom_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.uom ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.uom_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: buckets; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.buckets (
+    id text NOT NULL,
+    name text NOT NULL,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    public boolean DEFAULT false,
+    avif_autodetection boolean DEFAULT false,
+    file_size_limit bigint,
+    allowed_mime_types text[]
+);
+
+
+--
+-- Name: migrations; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.migrations (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    hash character varying(40) NOT NULL,
+    executed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+--
+-- Name: objects; Type: TABLE; Schema: storage; Owner: -
+--
+
+CREATE TABLE storage.objects (
+    id uuid DEFAULT extensions.uuid_generate_v4() NOT NULL,
+    bucket_id text,
+    name text,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    last_accessed_at timestamp with time zone DEFAULT now(),
+    metadata jsonb,
+    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/'::text)) STORED,
+    version text
+);
+
+
+--
+-- Name: decrypted_secrets; Type: VIEW; Schema: vault; Owner: -
+--
+
+CREATE VIEW vault.decrypted_secrets AS
+ SELECT secrets.id,
+    secrets.name,
+    secrets.description,
+    secrets.secret,
+        CASE
+            WHEN (secrets.secret IS NULL) THEN NULL::text
+            ELSE
+            CASE
+                WHEN (secrets.key_id IS NULL) THEN NULL::text
+                ELSE convert_from(pgsodium.crypto_aead_det_decrypt(decode(secrets.secret, 'base64'::text), convert_to(((((secrets.id)::text || secrets.description) || (secrets.created_at)::text) || (secrets.updated_at)::text), 'utf8'::name), secrets.key_id, secrets.nonce), 'utf8'::name)
+            END
+        END AS decrypted_secret,
+    secrets.key_id,
+    secrets.nonce,
+    secrets.created_at,
+    secrets.updated_at
+   FROM vault.secrets;
+
+
+--
+-- Name: refresh_tokens id; Type: DEFAULT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens ALTER COLUMN id SET DEFAULT nextval('auth.refresh_tokens_id_seq'::regclass);
+
+
+--
+-- Data for Name: audit_log_entries; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.audit_log_entries (instance_id, id, payload, created_at, ip_address) FROM stdin;
+00000000-0000-0000-0000-000000000000	9939e4fe-5cc7-4956-90e8-98fe2a99fe82	{"action":"user_invited","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"supabase_admin","log_type":"team","traits":{"user_email":"codedimas@gmail.com","user_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d"}}	2023-02-07 15:43:51.94382+00	
+00000000-0000-0000-0000-000000000000	1b48d775-7f81-4873-863b-5a62f3488a9e	{"action":"user_signedup","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"team"}	2023-02-07 15:44:48.925874+00	
+00000000-0000-0000-0000-000000000000	0d3faa12-3421-48b3-a827-68aa0e5ca063	{"action":"user_recovery_requested","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"user"}	2023-02-07 15:46:12.325652+00	
+00000000-0000-0000-0000-000000000000	9a67fbf5-2b4a-46fb-88aa-63090ce3aab8	{"action":"user_recovery_requested","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"user"}	2023-02-08 12:54:19.208093+00	
+00000000-0000-0000-0000-000000000000	0ec8017f-4807-4f85-a891-72103faf5c4f	{"action":"login","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"account"}	2023-02-08 12:55:40.398896+00	
+00000000-0000-0000-0000-000000000000	996dca1f-991f-45be-9112-056ea3892ee0	{"action":"user_confirmation_requested","actor_id":"9469efdd-0afb-46d2-a691-cf5c25011b26","actor_username":"dimas@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:29:37.84434+00	
+00000000-0000-0000-0000-000000000000	86b63d64-8bf9-4a1d-a4b5-0da7645d64e1	{"action":"user_confirmation_requested","actor_id":"2838ff86-9eea-434c-8b89-38c9e41b4bd5","actor_username":"nyoman@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:31:48.975214+00	
+00000000-0000-0000-0000-000000000000	984dcc9c-eb6b-44a2-b9b3-724a9a450549	{"action":"user_confirmation_requested","actor_id":"5cfca0d9-41df-4a7d-a09c-f3be24467596","actor_username":"dimassdoubles@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:33:56.191382+00	
+00000000-0000-0000-0000-000000000000	0f4ec2b4-1e08-4aa1-87f0-7e4c482b1fcf	{"action":"user_signedup","actor_id":"5cfca0d9-41df-4a7d-a09c-f3be24467596","actor_username":"dimassdoubles@gmail.com","log_type":"team"}	2023-02-10 15:34:29.66119+00	
+00000000-0000-0000-0000-000000000000	ba7d8b02-055f-4ea8-9f55-671e052b5726	{"action":"user_deleted","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","log_type":"team","traits":{"user_email":"nyoman@gmail.com","user_id":"2838ff86-9eea-434c-8b89-38c9e41b4bd5","user_phone":""}}	2023-02-10 15:38:42.646606+00	
+00000000-0000-0000-0000-000000000000	056f689d-637c-4118-b253-a8cbcf97c463	{"action":"user_deleted","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","log_type":"team","traits":{"user_email":"dimas@gmail.com","user_id":"9469efdd-0afb-46d2-a691-cf5c25011b26","user_phone":""}}	2023-02-10 15:38:49.591234+00	
+00000000-0000-0000-0000-000000000000	789a6a7d-6a2e-4d34-911c-7d79ffd78c45	{"action":"user_repeated_signup","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:49:31.496826+00	
+00000000-0000-0000-0000-000000000000	604f246f-5488-4bb3-b70a-ba8b12bbaf5f	{"action":"user_repeated_signup","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:50:02.375263+00	
+00000000-0000-0000-0000-000000000000	00932852-a2b2-42a5-902e-072886c7c9f6	{"action":"user_repeated_signup","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:50:08.133809+00	
+00000000-0000-0000-0000-000000000000	b75cd5c9-d604-41cf-a2e2-ca3fe43941ab	{"action":"user_repeated_signup","actor_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","actor_username":"codedimas@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:50:16.866163+00	
+00000000-0000-0000-0000-000000000000	4c4e8fb2-2a94-40f8-9add-d230093a1edc	{"action":"user_deleted","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","log_type":"team","traits":{"user_email":"codedimas@gmail.com","user_id":"daa63a0a-f7e6-4bb0-8e68-53b1d517b09d","user_phone":""}}	2023-02-10 15:51:10.924885+00	
+00000000-0000-0000-0000-000000000000	bb1e97cd-0cfe-46e5-bbb7-73d1cd91146e	{"action":"user_confirmation_requested","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"user","traits":{"provider":"email"}}	2023-02-10 15:51:20.235206+00	
+00000000-0000-0000-0000-000000000000	df7cab35-4ca5-4c4c-9226-f8286f101fbc	{"action":"user_signedup","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"team"}	2023-02-10 15:51:33.406806+00	
+00000000-0000-0000-0000-000000000000	2b56d470-ae26-43a5-92ff-524d72c7b777	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-17 17:43:32.186748+00	
+00000000-0000-0000-0000-000000000000	b60b8a1a-28de-4ce8-aefa-3db43419d763	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-17 17:44:55.194847+00	
+00000000-0000-0000-0000-000000000000	d19d12c6-83d8-4411-9a73-3db353412328	{"action":"token_refreshed","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-17 22:18:29.118537+00	
+00000000-0000-0000-0000-000000000000	6cecc285-8e70-4025-9cdd-f57fbfec9397	{"action":"token_revoked","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-17 22:18:29.12075+00	
+00000000-0000-0000-0000-000000000000	66ed7c04-e1a7-4bd2-a2e4-e6375cff8953	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-17 22:33:57.86544+00	
+00000000-0000-0000-0000-000000000000	d3aed245-c342-4bb2-af1c-350eae07efce	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-18 03:42:36.942905+00	
+00000000-0000-0000-0000-000000000000	ade1b700-938d-4a41-ab10-2ddc73b84645	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-18 03:42:49.940339+00	
+00000000-0000-0000-0000-000000000000	6282eb5e-a499-46e4-b11c-9fd29400ebe8	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-18 03:54:30.256446+00	
+00000000-0000-0000-0000-000000000000	55035e2d-aaf2-4db2-b4e5-bbbc4be4ec9a	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-18 03:54:30.322449+00	
+00000000-0000-0000-0000-000000000000	fe1854e2-d4da-4ac9-8a43-2d502f7794ad	{"action":"login","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"account","traits":{"provider":"email"}}	2023-02-18 04:39:29.225522+00	
+00000000-0000-0000-0000-000000000000	def1805b-e236-4946-90c1-83c4864f4e7a	{"action":"token_refreshed","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 05:38:29.932467+00	
+00000000-0000-0000-0000-000000000000	ae5526b3-7e54-4247-ab1a-99720ec42f97	{"action":"token_revoked","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 05:38:29.933173+00	
+00000000-0000-0000-0000-000000000000	844a0624-3c90-42e1-b928-5f75ac4f9ecc	{"action":"token_refreshed","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 06:37:29.606737+00	
+00000000-0000-0000-0000-000000000000	564f1566-1834-4f33-8c14-66249f7cc4c0	{"action":"token_revoked","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 06:37:29.608429+00	
+00000000-0000-0000-0000-000000000000	a9f1f0d7-92f9-47b1-b259-f8e212d4fd69	{"action":"token_refreshed","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 09:05:27.963205+00	
+00000000-0000-0000-0000-000000000000	789aaf5d-d001-44db-b9ea-7781d2e84e84	{"action":"token_revoked","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 09:05:27.963974+00	
+00000000-0000-0000-0000-000000000000	1bde2444-e84c-41a3-bb45-669f3f3af2ab	{"action":"token_refreshed","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 11:13:45.0026+00	
+00000000-0000-0000-0000-000000000000	25fedb60-982f-432a-919b-b034d4c7978a	{"action":"token_revoked","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 11:13:45.003367+00	
+00000000-0000-0000-0000-000000000000	4bf2e38a-47e5-42b5-ad26-5ca248d28eeb	{"action":"token_refreshed","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 12:12:46.746696+00	
+00000000-0000-0000-0000-000000000000	8d19f4a5-b5a6-4588-8061-fb4ed0be3a35	{"action":"token_revoked","actor_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","actor_username":"codedimas@gmail.com","log_type":"token"}	2023-02-18 12:12:46.747401+00	
+00000000-0000-0000-0000-000000000000	439cc378-7fbc-4fdc-b932-bf53869adbe1	{"action":"user_deleted","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"codedimas@gmail.com","user_id":"3fd140c7-2b3a-45d0-86a9-36d09f5fe6aa","user_phone":""}}	2023-04-15 17:56:12.670027+00	
+00000000-0000-0000-0000-000000000000	ee0b11f4-d0de-4017-b397-f61e1b149783	{"action":"user_deleted","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"dimassdoubles@gmail.com","user_id":"5cfca0d9-41df-4a7d-a09c-f3be24467596","user_phone":""}}	2023-04-15 17:56:19.501246+00	
+00000000-0000-0000-0000-000000000000	17047e1a-0fef-432b-a64e-21d2742af76b	{"action":"user_signedup","actor_id":"2779c74f-7193-4e59-ba71-84ee632dcedc","actor_username":"karyawan@gmail.com","actor_via_sso":false,"log_type":"team","traits":{"provider":"email"}}	2023-04-24 15:14:23.715443+00	
+00000000-0000-0000-0000-000000000000	b81f824a-1219-4c96-a23c-d22472c6e103	{"action":"login","actor_id":"2779c74f-7193-4e59-ba71-84ee632dcedc","actor_username":"karyawan@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-24 15:14:23.718722+00	
+00000000-0000-0000-0000-000000000000	8d51dabb-7094-4eb2-88d7-264303e8c431	{"action":"user_signedup","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"admin@gmail.com","user_id":"87bc7b19-9ddc-4724-8f6b-d4d0b0dc7ebb","user_phone":""}}	2023-04-24 15:58:33.733221+00	
+00000000-0000-0000-0000-000000000000	65dd53a7-39f0-42af-9d4d-eb1fad393457	{"action":"user_signedup","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"kasir@gmail.com","user_id":"8f58711c-79ee-4616-af93-a6162c8683fc","user_phone":""}}	2023-04-25 03:53:12.139603+00	
+00000000-0000-0000-0000-000000000000	998bad79-31ed-4aeb-9231-84837f28bd0b	{"action":"user_signedup","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"manager@gmail.com","user_id":"1b85428d-8f5d-4204-bbee-3a0ac815a530","user_phone":""}}	2023-04-25 03:53:41.873975+00	
+00000000-0000-0000-0000-000000000000	bafa956e-6a2f-4e57-b411-0137d63e792a	{"action":"user_deleted","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"karyawan@gmail.com","user_id":"2779c74f-7193-4e59-ba71-84ee632dcedc","user_phone":""}}	2023-04-25 03:57:07.44919+00	
+00000000-0000-0000-0000-000000000000	3e536abb-e854-4a4a-b6a5-323cad523630	{"action":"login","actor_id":"8f58711c-79ee-4616-af93-a6162c8683fc","actor_username":"kasir@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 04:52:33.010473+00	
+00000000-0000-0000-0000-000000000000	a728942f-ed1e-41a9-88d6-b8ec7173711b	{"action":"user_recovery_requested","actor_id":"8f58711c-79ee-4616-af93-a6162c8683fc","actor_username":"kasir@gmail.com","actor_via_sso":false,"log_type":"user"}	2023-04-25 05:15:26.88356+00	
+00000000-0000-0000-0000-000000000000	8110e9e0-29d2-437b-9133-11f35a6696b8	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:44:42.5742+00	
+00000000-0000-0000-0000-000000000000	33816434-7193-42b3-ab7a-d50351054c62	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:18.947394+00	
+00000000-0000-0000-0000-000000000000	f0c477e6-763d-420a-82fe-6e233ba91e33	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:19.003114+00	
+00000000-0000-0000-0000-000000000000	55dc4c46-a1ca-4d03-8208-25c51e4a0e7c	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:19.088642+00	
+00000000-0000-0000-0000-000000000000	26cfc8b0-fa30-45da-b8f6-8f433923351a	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:26.41747+00	
+00000000-0000-0000-0000-000000000000	f06c4019-1dad-4b1e-9207-35b8f090a4e3	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:26.553527+00	
+00000000-0000-0000-0000-000000000000	510b09b4-3d77-4bae-8311-3da1f94de108	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:26.668661+00	
+00000000-0000-0000-0000-000000000000	2ae96f3c-5277-4eb8-9a9d-011639e529c8	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:26.761404+00	
+00000000-0000-0000-0000-000000000000	9c11155e-c1da-4c08-a934-46f026277004	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:26.888943+00	
+00000000-0000-0000-0000-000000000000	2cf7cd7c-97d2-4748-9ad4-1abd67ef372d	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:26.950468+00	
+00000000-0000-0000-0000-000000000000	4e7f9b62-e5a0-4f4e-a857-7935a38143d7	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.047518+00	
+00000000-0000-0000-0000-000000000000	94228b0f-a259-46a2-bc78-0c09e01c0eea	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.156766+00	
+00000000-0000-0000-0000-000000000000	c82619b8-1f53-4ad7-85f2-47484e963cfe	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.250186+00	
+00000000-0000-0000-0000-000000000000	70e0ce53-b43e-426d-9fa6-4e971cad5fc2	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.351199+00	
+00000000-0000-0000-0000-000000000000	7d6039ab-7099-4781-a4a8-0e5eef817616	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.457628+00	
+00000000-0000-0000-0000-000000000000	98c7ea02-170d-44ec-8c37-54c2a42b5643	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.562764+00	
+00000000-0000-0000-0000-000000000000	2a43f229-7e7c-4bc2-912b-68b0fb19636b	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.663494+00	
+00000000-0000-0000-0000-000000000000	077d1a25-d8c9-483b-b444-0c10ff195f7e	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:50:27.773044+00	
+00000000-0000-0000-0000-000000000000	01d584b9-9900-4375-80f0-e3c9f5547222	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 05:59:03.262418+00	
+00000000-0000-0000-0000-000000000000	219171f2-252f-4a44-83d5-72674a2eb23e	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 08:17:36.232966+00	
+00000000-0000-0000-0000-000000000000	c60930f6-66a6-4018-87ae-7a034db54f5e	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 08:17:40.533986+00	
+00000000-0000-0000-0000-000000000000	9f8e7cb1-ee74-4d7a-8c63-3ffd4e5c765d	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 08:17:45.701454+00	
+00000000-0000-0000-0000-000000000000	cb26ff1c-25c6-4b1c-97a0-fa03b38d53c3	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 08:19:45.214825+00	
+00000000-0000-0000-0000-000000000000	42658a80-9bad-4b8f-b362-2a61d25e217d	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 08:20:11.215846+00	
+00000000-0000-0000-0000-000000000000	7624af18-2e82-45fb-a96b-96620a48329c	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 08:20:14.941484+00	
+00000000-0000-0000-0000-000000000000	67df0654-fed8-4faa-9eaa-867073e91fb7	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 09:13:14.401107+00	
+00000000-0000-0000-0000-000000000000	8462a67f-f37f-480e-88a9-678d653480f2	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 09:13:16.182376+00	
+00000000-0000-0000-0000-000000000000	f1d14662-6146-4b74-8e9b-32fa58c81e98	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 09:17:25.302938+00	
+00000000-0000-0000-0000-000000000000	a54fc875-a682-49ae-9cf9-fdd66372edbc	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 09:18:34.761145+00	
+00000000-0000-0000-0000-000000000000	9ecc7f6f-6428-4847-a222-e7b43972f10a	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 09:24:49.168236+00	
+00000000-0000-0000-0000-000000000000	9b56a0cb-7aa6-4c56-8a36-bb52d608391d	{"action":"token_refreshed","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"token"}	2023-04-25 10:23:51.081952+00	
+00000000-0000-0000-0000-000000000000	e9c906b7-c0b5-4023-958f-e51420fe9876	{"action":"token_revoked","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"token"}	2023-04-25 10:23:51.082723+00	
+00000000-0000-0000-0000-000000000000	c5bf1253-fc8f-439d-b60d-5a1c5a0ab514	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 11:17:06.547106+00	
+00000000-0000-0000-0000-000000000000	37afe620-60e8-42c4-ad2f-b25b05649d40	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 11:17:11.649386+00	
+00000000-0000-0000-0000-000000000000	e939dcc9-0423-40d0-8e09-6cd2201c38fb	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 11:17:18.121595+00	
+00000000-0000-0000-0000-000000000000	79aa1798-33bc-4355-9e34-c8df78e1fbfa	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 11:21:05.08039+00	
+00000000-0000-0000-0000-000000000000	24d7da71-4f13-4259-a2f6-4abf2188e765	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 11:53:33.655757+00	
+00000000-0000-0000-0000-000000000000	c157b4a5-fa00-4d75-9895-5252b00da5a8	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 12:10:17.747595+00	
+00000000-0000-0000-0000-000000000000	2c63f3d1-c2f8-41d6-99da-b3f665c26e0a	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 14:57:10.225914+00	
+00000000-0000-0000-0000-000000000000	b2cd286a-91c4-4631-b444-0fbbf6bf1567	{"action":"token_refreshed","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"token"}	2023-04-25 15:56:11.053371+00	
+00000000-0000-0000-0000-000000000000	1e9c970c-ce67-43bd-9402-b9f58b91f674	{"action":"token_revoked","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"token"}	2023-04-25 15:56:11.054039+00	
+00000000-0000-0000-0000-000000000000	2a0dd39d-820f-4cc9-97a5-cb36e07e6005	{"action":"token_refreshed","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"token"}	2023-04-25 16:55:12.271212+00	
+00000000-0000-0000-0000-000000000000	8bca20f5-aa55-4ab6-90c4-f47dfc77ce9f	{"action":"token_revoked","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"token"}	2023-04-25 16:55:12.271828+00	
+00000000-0000-0000-0000-000000000000	7acf2676-3c6a-4ac0-a2a5-38914cc8b59c	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:46:23.397159+00	
+00000000-0000-0000-0000-000000000000	99a2357b-8ea1-4c04-a9c3-3c4783970b6f	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:49:23.688493+00	
+00000000-0000-0000-0000-000000000000	85045774-da90-4c25-b97b-ccb6162e79c2	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:51:12.717027+00	
+00000000-0000-0000-0000-000000000000	506ee346-9e1f-4347-a9a4-39b86ad22765	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:51:14.469237+00	
+00000000-0000-0000-0000-000000000000	ee895766-d5a3-4d67-9870-3f59285832bc	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:51:44.442615+00	
+00000000-0000-0000-0000-000000000000	e5db98ce-4fbb-4af6-873a-ae5e4354d30f	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:52:50.996319+00	
+00000000-0000-0000-0000-000000000000	72dcd5b3-673b-47d5-8099-51bd3a208c97	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:55:24.923216+00	
+00000000-0000-0000-0000-000000000000	e3ec30cb-df98-40ae-9531-86c798b28966	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:57:26.560373+00	
+00000000-0000-0000-0000-000000000000	702e12d2-2ec5-41fc-bfc9-1301471f6510	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 17:58:29.584129+00	
+00000000-0000-0000-0000-000000000000	80199ac5-8936-418c-9334-1a11771a2d06	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:04:27.448912+00	
+00000000-0000-0000-0000-000000000000	f601cc46-e239-4c8b-9c39-246e864aeb96	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:07:16.076374+00	
+00000000-0000-0000-0000-000000000000	b6647df3-0843-4327-b275-2535dae6ac70	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:16:41.634891+00	
+00000000-0000-0000-0000-000000000000	131ac72c-60d7-4b23-9512-5374e822c98e	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:21:37.427345+00	
+00000000-0000-0000-0000-000000000000	667329e9-e92d-4ad8-9624-12eedbfadb6b	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:29:55.197234+00	
+00000000-0000-0000-0000-000000000000	d0d9d108-6895-49fa-8549-9781bb5a070f	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:31:46.655709+00	
+00000000-0000-0000-0000-000000000000	5183f840-149b-4208-8e2a-013493565cb5	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:43:41.644492+00	
+00000000-0000-0000-0000-000000000000	842ecd43-2973-4904-94b9-bcf98de1e4d0	{"action":"login","actor_id":"975ce13b-27dd-4312-86e3-c6b711b89164","actor_username":"dev@email.io","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 18:53:33.703403+00	
+00000000-0000-0000-0000-000000000000	3f9306b8-8997-411b-b981-aa13991a441c	{"action":"user_signedup","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"outlet_bogor@gmail.com","user_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","user_phone":""}}	2023-04-25 19:08:59.047823+00	
+00000000-0000-0000-0000-000000000000	f65f1929-6775-460a-bd26-4494c3c3ac34	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 19:14:48.250118+00	
+00000000-0000-0000-0000-000000000000	951c7058-8971-4c4d-bb46-d642234a6198	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 19:29:52.893454+00	
+00000000-0000-0000-0000-000000000000	e2347c5b-2bc6-44f8-a759-53c0deb0d357	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 19:34:36.561373+00	
+00000000-0000-0000-0000-000000000000	eca1c89b-4da0-4d1e-a617-e52259d3ae51	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 19:38:43.192632+00	
+00000000-0000-0000-0000-000000000000	b74ca1fb-703d-49d0-b760-25ae0b350b12	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-25 19:48:53.702244+00	
+00000000-0000-0000-0000-000000000000	7aa7f8b6-61e0-4d63-8696-787ac948da3b	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 05:54:34.314901+00	
+00000000-0000-0000-0000-000000000000	f5994725-a977-4acd-ba81-c6aec8baaf5c	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 06:07:18.963138+00	
+00000000-0000-0000-0000-000000000000	1774221b-acf2-4656-b757-a7f547c11789	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 06:08:58.612512+00	
+00000000-0000-0000-0000-000000000000	2bea365c-ce9c-4566-8fc1-38882018e3fc	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 06:10:13.432062+00	
+00000000-0000-0000-0000-000000000000	6a03eda9-f063-4627-ae81-c62adba5aef2	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 06:16:05.696825+00	
+00000000-0000-0000-0000-000000000000	e719d45f-e524-4b27-b681-758e15b3d8e3	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 06:22:59.240521+00	
+00000000-0000-0000-0000-000000000000	220097be-7120-489b-b429-b7183ee18d01	{"action":"login","actor_id":"d8fcf3a6-8ee2-4568-855b-c037a59036bb","actor_username":"outlet_bogor@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-04-26 06:29:58.293886+00	
+00000000-0000-0000-0000-000000000000	5cfcc0c0-9f69-443f-8bb5-44cef215b80b	{"action":"user_signedup","actor_id":"00000000-0000-0000-0000-000000000000","actor_username":"service_role","actor_via_sso":false,"log_type":"team","traits":{"user_email":"pegawai@gmail.com","user_id":"5d39d031-c411-4d33-a61f-753acd411ebc","user_phone":""}}	2023-05-20 05:16:13.243733+00	
+00000000-0000-0000-0000-000000000000	a4de193c-c4e3-45f1-a8d2-68e7f5ddf11d	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 05:21:28.115689+00	
+00000000-0000-0000-0000-000000000000	52c5ba4e-ec2b-4198-8757-060b68afef5e	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-20 16:00:32.477022+00	
+00000000-0000-0000-0000-000000000000	5ac8cc64-695d-4b75-865f-a2394c865ac8	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-20 16:00:32.47852+00	
+00000000-0000-0000-0000-000000000000	15a19699-3428-4184-b902-b7da1b11d473	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 16:16:01.815098+00	
+00000000-0000-0000-0000-000000000000	6b17583c-715e-4533-86bb-bb1601fd2bb0	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 16:26:21.989704+00	
+00000000-0000-0000-0000-000000000000	523d3ef9-928f-4df2-8263-796e8046719a	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 16:26:38.029113+00	
+00000000-0000-0000-0000-000000000000	b79976b8-49a0-4f95-a08c-16a26c16539c	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 16:26:42.188487+00	
+00000000-0000-0000-0000-000000000000	375d92af-a4c1-4730-aab9-ecc5edbe4ef8	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 16:27:28.366729+00	
+00000000-0000-0000-0000-000000000000	a54d4b22-f61a-435c-84aa-ce801ed150d5	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-20 18:07:24.230808+00	
+00000000-0000-0000-0000-000000000000	7c8ebfcb-1dc1-415f-a062-ab3b04cf4b1e	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-20 18:07:24.231399+00	
+00000000-0000-0000-0000-000000000000	8c658381-5d62-4ac2-82ff-e74c43d6a470	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:16:25.526212+00	
+00000000-0000-0000-0000-000000000000	926e3824-25c6-4a5f-897d-317a448fbc09	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:17:54.784802+00	
+00000000-0000-0000-0000-000000000000	4725fec9-6b2a-4c80-a552-d928cd3850e8	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:20:14.711907+00	
+00000000-0000-0000-0000-000000000000	079364ff-0547-4a16-9306-6813001ff95d	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:21:03.347087+00	
+00000000-0000-0000-0000-000000000000	8da23e27-2a21-48bf-8e5b-2a7c18292b0d	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:22:00.447875+00	
+00000000-0000-0000-0000-000000000000	d3e5123d-471e-4c41-8f95-64724536d301	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:23:49.237997+00	
+00000000-0000-0000-0000-000000000000	9b861651-c741-4fec-8cf8-7c2957c5b7e1	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:28:06.974901+00	
+00000000-0000-0000-0000-000000000000	3eecb1fa-1fe6-4408-9964-91056466c2c9	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 18:55:20.21126+00	
+00000000-0000-0000-0000-000000000000	5a57f040-863f-4a57-b3c3-03ef28a44cb0	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 19:07:26.680203+00	
+00000000-0000-0000-0000-000000000000	ff7589f6-c863-46b8-8d70-7200f00ce0c7	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 19:37:33.006328+00	
+00000000-0000-0000-0000-000000000000	c9821dee-546d-4432-a700-6e50fca989be	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 19:38:47.534117+00	
+00000000-0000-0000-0000-000000000000	81ec6c31-6da8-416f-b641-8792cc52e69b	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 19:53:43.25671+00	
+00000000-0000-0000-0000-000000000000	d403e549-f33d-42ae-8834-7bc62e6ddd1c	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 19:54:53.443798+00	
+00000000-0000-0000-0000-000000000000	8ecb4ed4-3cc6-488f-807c-e8b44635cff6	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 19:58:45.913029+00	
+00000000-0000-0000-0000-000000000000	66fd0b03-15fa-46d4-b615-1e92a57bb8da	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 20:20:28.379551+00	
+00000000-0000-0000-0000-000000000000	a6acf794-c506-400e-9e2f-dc6c341548fb	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 20:20:49.710689+00	
+00000000-0000-0000-0000-000000000000	817d9d9e-31cc-4ddb-ab16-e7433f865fbd	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 20:25:26.725983+00	
+00000000-0000-0000-0000-000000000000	39ccb967-0f42-4cc7-9def-6e0d99ae02d9	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-20 20:31:47.408826+00	
+00000000-0000-0000-0000-000000000000	e865a610-526a-4e4a-bcf8-438b45e1957c	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 11:05:32.103416+00	
+00000000-0000-0000-0000-000000000000	809802cd-1e3c-42c2-9f1d-00f8d2e420ad	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 11:21:07.329886+00	
+00000000-0000-0000-0000-000000000000	96f939fe-0e7c-4d84-beac-c2d819a83490	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 11:36:40.048571+00	
+00000000-0000-0000-0000-000000000000	e38660f3-85b5-4577-bbab-47e6db5b8c24	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-21 11:36:45.977785+00	
+00000000-0000-0000-0000-000000000000	61f9caa4-61b1-49cb-94f0-4db4a1159025	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 11:36:59.689489+00	
+00000000-0000-0000-0000-000000000000	b4771120-de95-4e58-ace8-b3fb6feba440	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-21 11:37:14.971192+00	
+00000000-0000-0000-0000-000000000000	1e0c3ca7-3ecc-4930-9843-292f02e7a828	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 11:38:15.842826+00	
+00000000-0000-0000-0000-000000000000	52a5b932-5f0e-465e-a7cb-7a40c9e51586	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 12:11:40.100063+00	
+00000000-0000-0000-0000-000000000000	f6f90b2f-d1dd-4413-8b1b-915aefa91128	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 12:13:29.565408+00	
+00000000-0000-0000-0000-000000000000	ae1ddd87-0332-43ab-a3ef-c98e0ac8e532	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-21 12:34:01.807174+00	
+00000000-0000-0000-0000-000000000000	80dbd617-28fb-4bc4-8d3a-d38f493033b7	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 12:34:18.746462+00	
+00000000-0000-0000-0000-000000000000	d42a7490-a133-463e-ab4c-8736d4b30ae3	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-21 12:42:38.083182+00	
+00000000-0000-0000-0000-000000000000	a6ec6bd5-d61d-4875-9c98-79c5fb99dac6	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 12:42:51.071067+00	
+00000000-0000-0000-0000-000000000000	49288896-8d1a-4279-aeb4-4aba17a82d45	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-21 13:24:47.625801+00	
+00000000-0000-0000-0000-000000000000	c911be45-cfb3-4286-903a-c02d41eace71	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 13:24:58.622636+00	
+00000000-0000-0000-0000-000000000000	16b0250c-534f-4790-8e55-9e6780f5881c	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-21 13:26:35.690786+00	
+00000000-0000-0000-0000-000000000000	fa1963e3-1186-47cf-b7b3-2e6cfa69a4c9	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-21 13:26:55.534504+00	
+00000000-0000-0000-0000-000000000000	059a7e72-2fd7-4c0b-b376-a708a1146d56	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-22 11:38:14.625341+00	
+00000000-0000-0000-0000-000000000000	4c737e02-e50d-44c4-bba6-5bcec09721ae	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-22 11:38:14.626237+00	
+00000000-0000-0000-0000-000000000000	3913317f-d982-4b51-96cf-dce3d3765cd8	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 11:38:47.226602+00	
+00000000-0000-0000-0000-000000000000	3b75ba49-60a2-478c-b5a4-d376b3c44483	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-22 12:37:47.895551+00	
+00000000-0000-0000-0000-000000000000	4c23ee3f-1520-426e-b0c0-93ebf0ea5306	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-22 12:37:47.896307+00	
+00000000-0000-0000-0000-000000000000	03f19cfc-226d-4be1-b00d-ed40148d0543	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-22 13:51:39.340633+00	
+00000000-0000-0000-0000-000000000000	8926c239-a756-45b4-a094-3af6e8199081	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-22 13:51:39.341347+00	
+00000000-0000-0000-0000-000000000000	a1132722-abf9-4fab-8750-4121979e8fee	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 13:51:47.145793+00	
+00000000-0000-0000-0000-000000000000	3e365242-1de1-477d-9286-3d849e5852f3	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 13:55:48.664964+00	
+00000000-0000-0000-0000-000000000000	5c33769d-19f8-4968-add1-a252c50cd1b5	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 14:27:04.647425+00	
+00000000-0000-0000-0000-000000000000	e744d80b-98df-4a5a-8c3d-af235312eb7b	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 14:31:53.577049+00	
+00000000-0000-0000-0000-000000000000	30409aeb-3795-4d94-ae59-f46ca2fce87c	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 15:30:14.768196+00	
+00000000-0000-0000-0000-000000000000	4be84e5f-b5d7-4334-b7fa-124ed5e1da0b	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 15:51:52.416883+00	
+00000000-0000-0000-0000-000000000000	cc7aeee0-a89a-4ebb-80fc-7df10bb69343	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 16:34:31.945397+00	
+00000000-0000-0000-0000-000000000000	3bec362a-790c-4fd4-8a42-3ad2c8581953	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 16:36:31.479553+00	
+00000000-0000-0000-0000-000000000000	008a5346-b0cb-4bbf-b5a4-e05a5cf5d041	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 16:40:47.111023+00	
+00000000-0000-0000-0000-000000000000	14f32d8e-043b-4b73-b80f-e7e32609490e	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 16:43:00.949127+00	
+00000000-0000-0000-0000-000000000000	2cf56696-b7b6-4e5c-b730-4ffb7987cdee	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-22 16:50:02.590349+00	
+00000000-0000-0000-0000-000000000000	01df5833-71cd-4d1f-952f-94129528ce45	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-22 16:50:18.009989+00	
+00000000-0000-0000-0000-000000000000	152c79fa-3d27-4f68-a6aa-2eeb3d756a31	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-23 13:28:30.156265+00	
+00000000-0000-0000-0000-000000000000	5e170de8-02bb-48ed-a940-0d536ea65fcc	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-24 13:54:15.967062+00	
+00000000-0000-0000-0000-000000000000	00a024b0-2e66-4ba3-b9ce-09e069e97bc2	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-24 13:54:15.967919+00	
+00000000-0000-0000-0000-000000000000	a99340e3-9bd4-48d5-9adb-5d9a21fd2e44	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 13:56:45.549704+00	
+00000000-0000-0000-0000-000000000000	12f7a719-e827-409c-aec4-eeeb513fae25	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-24 14:55:46.848361+00	
+00000000-0000-0000-0000-000000000000	609691d2-12af-42ae-a4ab-44014b9cf204	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-24 14:55:46.849068+00	
+00000000-0000-0000-0000-000000000000	758b07e0-a897-4df8-af29-4999cc257d2d	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 15:29:02.42051+00	
+00000000-0000-0000-0000-000000000000	e181d39e-63c8-4b08-a615-e0a4bce7370e	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 15:30:04.182583+00	
+00000000-0000-0000-0000-000000000000	5199bc2a-cbff-43e0-944b-aee8b078b409	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 15:35:46.134709+00	
+00000000-0000-0000-0000-000000000000	9c4e5c01-6667-4346-9f0f-c366744fc1aa	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 15:49:34.615306+00	
+00000000-0000-0000-0000-000000000000	7577f541-2a2a-41bb-bad5-2f7f679d15ee	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 15:54:34.157719+00	
+00000000-0000-0000-0000-000000000000	73fb6355-ea1f-424e-996a-9ff34949c16e	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 15:57:56.100784+00	
+00000000-0000-0000-0000-000000000000	71591791-b174-4469-91b5-e273f6ca82f5	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 16:00:26.090229+00	
+00000000-0000-0000-0000-000000000000	570bece8-4ea2-45f2-93ce-8e758f6d26ec	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-24 16:09:51.250355+00	
+00000000-0000-0000-0000-000000000000	3caa570f-22f8-46cb-9558-f960ba78000a	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-25 03:34:53.355867+00	
+00000000-0000-0000-0000-000000000000	197311c4-9a58-449a-9754-04bf09ec5133	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-25 03:34:53.358225+00	
+00000000-0000-0000-0000-000000000000	9d5b255a-3555-4556-ba67-a8fa5828905b	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 13:38:37.580242+00	
+00000000-0000-0000-0000-000000000000	207d2b69-9dd1-430e-92b5-1a2f09da5c1c	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 14:34:17.637708+00	
+00000000-0000-0000-0000-000000000000	e535c85b-e6d0-463b-8ef0-6a0952aadbce	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 15:14:17.931595+00	
+00000000-0000-0000-0000-000000000000	91a5e43b-9b45-4130-acf7-6063d648da80	{"action":"logout","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account"}	2023-05-25 15:17:23.647742+00	
+00000000-0000-0000-0000-000000000000	235cbc17-2b50-4c23-b6b1-9ef03dc2965e	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 15:19:06.617905+00	
+00000000-0000-0000-0000-000000000000	ce06f918-78ca-44cf-8158-633c23d87391	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 15:24:16.104073+00	
+00000000-0000-0000-0000-000000000000	867c21e3-9e33-48de-9463-7fd776afd116	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 15:29:39.373701+00	
+00000000-0000-0000-0000-000000000000	4917168b-0e22-4443-a853-057978826f1f	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 16:01:40.142337+00	
+00000000-0000-0000-0000-000000000000	1b4ae80a-3568-4d38-af6f-f162e2f9cb33	{"action":"login","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"account","traits":{"provider":"email"}}	2023-05-25 16:04:55.272144+00	
+00000000-0000-0000-0000-000000000000	5458b20c-5a92-4bab-8998-7c903ff59292	{"action":"token_refreshed","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-26 15:44:45.548642+00	
+00000000-0000-0000-0000-000000000000	eeea89bd-4aa2-4279-9dfb-2eeca8986e4a	{"action":"token_revoked","actor_id":"5d39d031-c411-4d33-a61f-753acd411ebc","actor_username":"pegawai@gmail.com","actor_via_sso":false,"log_type":"token"}	2023-05-26 15:44:45.549411+00	
+\.
+
+
+--
+-- Data for Name: flow_state; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.flow_state (id, user_id, auth_code, code_challenge_method, code_challenge, provider_type, provider_access_token, provider_refresh_token, created_at, updated_at, authentication_method) FROM stdin;
+\.
+
+
+--
+-- Data for Name: identities; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.identities (id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at) FROM stdin;
+87bc7b19-9ddc-4724-8f6b-d4d0b0dc7ebb	87bc7b19-9ddc-4724-8f6b-d4d0b0dc7ebb	{"sub": "87bc7b19-9ddc-4724-8f6b-d4d0b0dc7ebb", "email": "admin@gmail.com"}	email	2023-04-24 15:58:33.732279+00	2023-04-24 15:58:33.73232+00	2023-04-24 15:58:33.73232+00
+8f58711c-79ee-4616-af93-a6162c8683fc	8f58711c-79ee-4616-af93-a6162c8683fc	{"sub": "8f58711c-79ee-4616-af93-a6162c8683fc", "email": "kasir@gmail.com"}	email	2023-04-25 03:53:12.138908+00	2023-04-25 03:53:12.138945+00	2023-04-25 03:53:12.138945+00
+975ce13b-27dd-4312-86e3-c6b711b89164	975ce13b-27dd-4312-86e3-c6b711b89164	{"sub": "975ce13b-27dd-4312-86e3-c6b711b89164"}	email	2023-04-25 05:41:12.507493+00	2023-04-25 05:41:12.507493+00	2023-04-25 05:41:12.507493+00
+d8fcf3a6-8ee2-4568-855b-c037a59036bb	d8fcf3a6-8ee2-4568-855b-c037a59036bb	{"sub": "d8fcf3a6-8ee2-4568-855b-c037a59036bb", "email": "outlet_bogor@gmail.com"}	email	2023-04-25 19:08:59.046926+00	2023-04-25 19:08:59.046964+00	2023-04-25 19:08:59.046964+00
+5d39d031-c411-4d33-a61f-753acd411ebc	5d39d031-c411-4d33-a61f-753acd411ebc	{"sub": "5d39d031-c411-4d33-a61f-753acd411ebc", "email": "pegawai@gmail.com"}	email	2023-05-20 05:16:13.242648+00	2023-05-20 05:16:13.242694+00	2023-05-20 05:16:13.242694+00
+\.
+
+
+--
+-- Data for Name: instances; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.instances (id, uuid, raw_base_config, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: mfa_amr_claims; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.mfa_amr_claims (session_id, created_at, updated_at, authentication_method, id) FROM stdin;
+307d4357-4ed0-4604-a1e1-70e47dea4eae	2023-04-25 04:52:33.01479+00	2023-04-25 04:52:33.01479+00	password	c2a2d454-9e49-4284-9fa7-fc04cf2ed0d1
+61a34c5f-e0f5-4ac8-a012-23eb02e47a9e	2023-04-25 05:44:42.57778+00	2023-04-25 05:44:42.57778+00	password	bcddc69e-5df1-4146-b5b9-7e67499e50ef
+bcbbfae8-a983-416b-b4a9-fbb9b1e898e2	2023-04-25 05:50:18.95052+00	2023-04-25 05:50:18.95052+00	password	18a219c5-0e74-4ddd-9947-0af9033b6d03
+4343fe3b-6350-47ae-b314-8440141624b7	2023-04-25 05:50:19.006507+00	2023-04-25 05:50:19.006507+00	password	a289e8c7-c663-4332-8c33-e7ff17739764
+1445ebe7-1833-4f57-8695-8b037230f017	2023-04-25 05:50:19.091541+00	2023-04-25 05:50:19.091541+00	password	3812ab82-896e-43ad-b14b-b66487568a22
+73c3b027-c82c-4a0a-868c-ebdf6d0cdeed	2023-04-25 05:50:26.420839+00	2023-04-25 05:50:26.420839+00	password	55a80772-6a3b-4eeb-b8f4-443025aa7455
+5e5dd9c5-3a9a-4b65-b364-7970e07b0b2e	2023-04-25 05:50:26.556283+00	2023-04-25 05:50:26.556283+00	password	fdd413b5-bd7d-4111-adef-eabf5fd8c1d2
+46781a0b-e930-40b4-b2c6-55d28a509414	2023-04-25 05:50:26.671396+00	2023-04-25 05:50:26.671396+00	password	4b7365bd-05c8-46e9-8bf2-1517408fe5d0
+9bd27f03-05b6-4619-bee2-bcfa4ad08f5d	2023-04-25 05:50:26.76405+00	2023-04-25 05:50:26.76405+00	password	241bc60d-3ba9-4593-9446-6ee62641dfbc
+ef2657df-ccd0-4f37-b915-ef715f525a8f	2023-04-25 05:50:26.891576+00	2023-04-25 05:50:26.891576+00	password	3cd322d8-b11b-4a68-a74c-d2fa821b56be
+17be6945-ea38-4a8e-9c47-795a7837e4d0	2023-04-25 05:50:26.953665+00	2023-04-25 05:50:26.953665+00	password	0ba2890d-d97e-4f79-a2e7-199871d84f70
+23ab0fec-0aa7-4877-8a5d-8eac2e053866	2023-04-25 05:50:27.052098+00	2023-04-25 05:50:27.052098+00	password	8a490e0f-ad1c-4d80-93be-f73feda3bb3b
+45b69dce-5543-4692-b838-0aff93fee5ee	2023-04-25 05:50:27.159578+00	2023-04-25 05:50:27.159578+00	password	237f7f80-6b64-4593-93c5-b5bc134388eb
+0aed7639-d77a-4dba-b575-7bab921a94fc	2023-04-25 05:50:27.253063+00	2023-04-25 05:50:27.253063+00	password	3bd3b037-03d8-4186-941b-399a10b9ec96
+4893d4e9-eccd-4c22-81e3-846407d77b35	2023-04-25 05:50:27.353935+00	2023-04-25 05:50:27.353935+00	password	7527bb87-366e-4fae-bdf7-cf8c06b74cda
+1c7059ae-30e1-438d-b653-a292b8c11ef4	2023-04-25 05:50:27.460516+00	2023-04-25 05:50:27.460516+00	password	878f0a08-0460-4928-b86a-47b8c77a5c35
+5fe0a6b7-e815-4cd1-9a01-42bf45560a3f	2023-04-25 05:50:27.565661+00	2023-04-25 05:50:27.565661+00	password	d4b061ff-9f41-46ba-b374-94e7d6805122
+2d347f9c-a4e2-4806-a760-c534a644e92e	2023-04-25 05:50:27.666328+00	2023-04-25 05:50:27.666328+00	password	a80e2a83-c653-40e0-ba57-2c18d81968d7
+3b2c06ea-93e0-4034-b79f-bad4362080ce	2023-04-25 05:50:27.775744+00	2023-04-25 05:50:27.775744+00	password	979125d8-106a-4105-83cf-f6ef690c7e75
+7c0f1ac6-69dd-449e-a107-821dc9dae03f	2023-04-25 05:59:03.265472+00	2023-04-25 05:59:03.265472+00	password	bd5328f2-3d0f-4c36-9472-f32d5e5747bb
+83db5192-607b-427d-82cd-13042ccb79b2	2023-04-25 08:17:36.235832+00	2023-04-25 08:17:36.235832+00	password	8e2fa2ef-b826-4d4f-b46b-aa5fcc4b09f2
+d0491fcb-d4fd-4880-bd20-eb6c1cdc9538	2023-04-25 08:17:40.536964+00	2023-04-25 08:17:40.536964+00	password	91d7de39-f430-4dd2-9e37-a9afe35a6146
+249da893-ff2a-45f3-ab75-42a40c1917cd	2023-04-25 08:17:45.7047+00	2023-04-25 08:17:45.7047+00	password	e7a88926-2091-46e6-a1fa-49c268b45a4e
+d9aff0c5-ed89-4f66-b6ec-5156be844190	2023-04-25 08:19:45.218634+00	2023-04-25 08:19:45.218634+00	password	e4e4de5c-9696-41b8-87dd-3ea529595f76
+83cdb8a5-425b-496a-88a4-0d54a08451ee	2023-04-25 08:20:11.218662+00	2023-04-25 08:20:11.218662+00	password	e2f3d5ed-4fb9-4b42-b1e8-5980f261581e
+e822ae26-25b2-4579-89f9-7deab23be6c5	2023-04-25 08:20:14.944277+00	2023-04-25 08:20:14.944277+00	password	5000f4e5-32e7-4af8-a777-9fb32b94817a
+994e891e-2394-40a7-95ec-70905910e098	2023-04-25 09:13:14.404068+00	2023-04-25 09:13:14.404068+00	password	448b026c-5ba7-4e03-ac85-45561578819e
+7e4232a0-9c16-40eb-a9d7-12e7d82b3538	2023-04-25 09:13:16.18522+00	2023-04-25 09:13:16.18522+00	password	08f10f5c-234c-4c8a-b15d-f149dcf423b5
+58301e44-de54-4b15-a22c-b672c2b3de00	2023-04-25 09:17:25.306371+00	2023-04-25 09:17:25.306371+00	password	6fd80666-bb07-41ac-b42c-616cc79572d1
+9b24c0cf-351b-4dea-a3bf-095c41f3a139	2023-04-25 09:18:34.763947+00	2023-04-25 09:18:34.763947+00	password	a7ff99b3-58f3-4d49-8b95-80295e5a746d
+d76dbd67-09d7-4ac1-a1dc-c25451d7f4bb	2023-04-25 09:24:49.172099+00	2023-04-25 09:24:49.172099+00	password	a3e5dce5-2d5c-4dc8-8983-560992775921
+36d1dd27-5403-4adc-93b9-72f9534dceb8	2023-04-25 11:17:06.550319+00	2023-04-25 11:17:06.550319+00	password	b6ca3b81-6a7a-4e7e-ac2a-50d2af15bcfd
+235719a3-29a2-47e0-87ec-e004bb5ce8e3	2023-04-25 11:17:11.652383+00	2023-04-25 11:17:11.652383+00	password	5a2cffbf-304f-4d1f-b9f2-340b0f623c9d
+240b43f2-bc2b-43e4-bcbc-2efddd7a2ddc	2023-04-25 11:17:18.124634+00	2023-04-25 11:17:18.124634+00	password	033aa7fb-65be-4f4a-8b81-d156bb2b7235
+76f529d0-cf8a-4561-9c76-5c65c91e3cbd	2023-04-25 11:21:05.084128+00	2023-04-25 11:21:05.084128+00	password	3ba21b9b-fed5-401f-ad18-7f341961c720
+1cb95cd4-743d-48ce-bd40-6b9b0789b60b	2023-04-25 11:53:33.65869+00	2023-04-25 11:53:33.65869+00	password	558da129-5a88-44fb-bb0c-3e108ca1a677
+3c7f9852-fe36-40f4-9803-8ebf8996b41e	2023-04-25 12:10:17.750386+00	2023-04-25 12:10:17.750386+00	password	8d2fdbd7-240c-49e3-8170-1d43491bbbba
+91d75c13-6d76-45e6-925b-970b9de79baa	2023-04-25 14:57:10.22898+00	2023-04-25 14:57:10.22898+00	password	f6c855e8-b94f-4adc-a506-e9447b2f19a4
+b892280b-917f-40a9-83da-65a650658930	2023-04-25 17:46:23.400184+00	2023-04-25 17:46:23.400184+00	password	4ef1625d-ce5a-4281-be94-681c61426c2d
+5c1fd4ee-48f0-4df8-8f24-2955503b1c0e	2023-04-25 17:49:23.691183+00	2023-04-25 17:49:23.691183+00	password	1fe33ffb-1aa1-4ea2-879d-256ada4f2be4
+f2d54706-6fc3-48f2-b649-f1612afc23eb	2023-04-25 17:51:12.720037+00	2023-04-25 17:51:12.720037+00	password	fb1498e1-afee-482c-9ec7-1f0d30b41908
+f77d40c7-e2db-4e30-9c21-b438bb0f2b7e	2023-04-25 17:51:14.472164+00	2023-04-25 17:51:14.472164+00	password	fcb05830-7713-4725-8bc9-dae720f27872
+d36c5e93-8c85-430a-9b11-d15455ed271a	2023-04-25 17:51:44.445648+00	2023-04-25 17:51:44.445648+00	password	1ccea753-b253-4a8c-8ce8-a4b25f570903
+623ce5ca-9ad5-4d76-9bd5-f68a4ccfef33	2023-04-25 17:52:50.99908+00	2023-04-25 17:52:50.99908+00	password	602f54be-c162-4a24-8769-16b1528c0a04
+031f8c19-7ace-4d5a-b02b-f1c504506d28	2023-04-25 17:55:24.926061+00	2023-04-25 17:55:24.926061+00	password	576b7849-7e84-45fa-a7e4-b7a262f717df
+cdf8c2c7-f234-4604-a3c8-ce324a01ddfe	2023-04-25 17:57:26.565001+00	2023-04-25 17:57:26.565001+00	password	7f4bb879-fae6-440a-b5bd-fffac8201cf5
+a8e73803-0906-4962-8ccd-9d551a356e6f	2023-04-25 17:58:29.586926+00	2023-04-25 17:58:29.586926+00	password	0857d3c3-2052-4661-8552-3012be7b4f14
+a3790897-f5e1-4a72-a315-fc97de9c1876	2023-04-25 18:04:27.451908+00	2023-04-25 18:04:27.451908+00	password	9de4459e-0829-41cf-b776-964b09726f2d
+62f6caf7-051b-4dc8-bbde-864a0e999139	2023-04-25 18:07:16.081719+00	2023-04-25 18:07:16.081719+00	password	44db32ab-dce6-4f43-9da5-e0e24056f392
+bf98a6d5-0670-4942-a9d1-f49b6d856741	2023-04-25 18:16:41.63928+00	2023-04-25 18:16:41.63928+00	password	134c3dea-45d9-4ee5-936a-f7b2a9fdeb4d
+6fa3d291-52bd-4644-87a1-9f3bfad3eb0b	2023-04-25 18:21:37.430238+00	2023-04-25 18:21:37.430238+00	password	17aa5afc-20f2-4e33-a8d9-6c6822a5fb66
+3edfa873-f69e-45a0-93a9-3e7bf026f24b	2023-04-25 18:29:55.200226+00	2023-04-25 18:29:55.200226+00	password	362c2ffd-67f3-48a1-9362-a4aa91808dd1
+9291bfab-20f0-4018-8ddf-2eea0209352c	2023-04-25 18:31:46.658324+00	2023-04-25 18:31:46.658324+00	password	78c9c541-b399-4005-bb7c-6710aba6584f
+da18620c-6a16-4ae6-8ac4-3c358e1e9f0e	2023-04-25 18:43:41.647559+00	2023-04-25 18:43:41.647559+00	password	c2c6ebc1-9e48-47cc-9a5e-3f589a30a228
+8e2c6a99-0460-43f4-b041-ddeaabe26f91	2023-04-25 18:53:33.706279+00	2023-04-25 18:53:33.706279+00	password	2babe0fd-f361-416d-b75f-2d9f954b8b9c
+39f910df-206f-4330-8d99-f0e92d693cf8	2023-04-25 19:14:48.253361+00	2023-04-25 19:14:48.253361+00	password	6be7a32f-3e1d-4a92-900a-8475bc1cc92c
+affad910-8de3-4ee3-867a-8160a9e5f139	2023-04-25 19:29:52.896615+00	2023-04-25 19:29:52.896615+00	password	daabfbbe-efc2-4461-b768-55b2a668b23c
+b6a1313f-c689-409d-b97d-cb45eedb7905	2023-04-25 19:34:36.564649+00	2023-04-25 19:34:36.564649+00	password	fc7d89ed-76f3-4376-b87c-7ccd1c89f33d
+921b0e99-521d-4874-901e-2d0ee174f94b	2023-04-25 19:38:43.196686+00	2023-04-25 19:38:43.196686+00	password	bc69d95b-fe80-420e-b66c-b787484cfbf8
+7fdd8e2f-0296-422d-a928-101e64c2e315	2023-04-25 19:48:53.705479+00	2023-04-25 19:48:53.705479+00	password	c8e65d90-3d4c-461e-8005-11b6a26bee85
+8aa032dd-0912-4e9a-bd2b-8b15c6f58625	2023-04-26 05:54:34.323191+00	2023-04-26 05:54:34.323191+00	password	48a341d4-0a9f-48b4-8ff3-d455bc19ebd4
+b5fafd04-2754-4956-b58b-1eb2ad6cb77a	2023-04-26 06:07:18.974756+00	2023-04-26 06:07:18.974756+00	password	f4a654f9-0554-48cf-b46d-90b2e92ab1e4
+cafaff86-1bf2-4eeb-855d-37c1aae5c999	2023-04-26 06:08:58.616106+00	2023-04-26 06:08:58.616106+00	password	6aa70098-4262-4a6a-b758-a6b4fe1858ea
+dd6fe41e-16cf-4c5d-8353-cccf8f480ee4	2023-04-26 06:10:13.435364+00	2023-04-26 06:10:13.435364+00	password	efe1934b-c1f7-4cfb-8091-97802b661bed
+de734369-f848-4b17-8301-12b637793c35	2023-04-26 06:16:05.704467+00	2023-04-26 06:16:05.704467+00	password	887fad68-c92e-43f4-bc38-95b3b004785f
+e4e36826-e10a-402b-b78d-21ea07272a6d	2023-04-26 06:22:59.245897+00	2023-04-26 06:22:59.245897+00	password	fc4aae52-0f7d-4726-bd9b-a5ba049294d4
+09cb1137-a709-47b8-8f72-a36113bca001	2023-04-26 06:29:58.29981+00	2023-04-26 06:29:58.29981+00	password	8d293fbc-0e14-45fc-83e3-90e394ea7334
+03632241-3289-4c40-803b-a07085a43220	2023-05-25 15:19:06.621968+00	2023-05-25 15:19:06.621968+00	password	478bb0ec-76a7-4af2-9520-11ec58629ac5
+d0dceae2-168c-4e9c-a813-79f04a0d2a4e	2023-05-25 15:24:16.107419+00	2023-05-25 15:24:16.107419+00	password	e695795e-3345-403a-bad5-252d17b5b535
+a679d352-68d4-42e5-8564-9af797b2c298	2023-05-25 15:29:39.376431+00	2023-05-25 15:29:39.376431+00	password	ecf9bf86-39ab-44f2-8733-dfe43af99d5f
+55f4d058-32e5-46b0-97ed-872f22c7a18c	2023-05-25 16:01:40.145804+00	2023-05-25 16:01:40.145804+00	password	bb8605be-0835-4e48-b79f-2af7eb614ffe
+7fa58aff-2154-43be-a97e-9731ce15110b	2023-05-25 16:04:55.275022+00	2023-05-25 16:04:55.275022+00	password	ce49f3dd-0def-4a9f-99fc-13232911bbad
+\.
+
+
+--
+-- Data for Name: mfa_challenges; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.mfa_challenges (id, factor_id, created_at, verified_at, ip_address) FROM stdin;
+\.
+
+
+--
+-- Data for Name: mfa_factors; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret) FROM stdin;
+\.
+
+
+--
+-- Data for Name: refresh_tokens; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.refresh_tokens (instance_id, id, token, user_id, revoked, created_at, updated_at, parent, session_id) FROM stdin;
+00000000-0000-0000-0000-000000000000	20	Y1coAIwn26Ld1GKXJ8UCuQ	8f58711c-79ee-4616-af93-a6162c8683fc	f	2023-04-25 04:52:33.012272+00	2023-04-25 04:52:33.012272+00	\N	307d4357-4ed0-4604-a1e1-70e47dea4eae
+00000000-0000-0000-0000-000000000000	21	YKAvtL-oy5JgOS4dkwFJXQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:44:42.575821+00	2023-04-25 05:44:42.575821+00	\N	61a34c5f-e0f5-4ac8-a012-23eb02e47a9e
+00000000-0000-0000-0000-000000000000	22	GfZ6DfdQ5TVKgnpnkdz9Gw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:18.948748+00	2023-04-25 05:50:18.948748+00	\N	bcbbfae8-a983-416b-b4a9-fbb9b1e898e2
+00000000-0000-0000-0000-000000000000	23	IbulZDYMPS4de4rRJ16v3w	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:19.004748+00	2023-04-25 05:50:19.004748+00	\N	4343fe3b-6350-47ae-b314-8440141624b7
+00000000-0000-0000-0000-000000000000	24	HK-mRXOhB5cY38R0_HFaVQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:19.089929+00	2023-04-25 05:50:19.089929+00	\N	1445ebe7-1833-4f57-8695-8b037230f017
+00000000-0000-0000-0000-000000000000	25	SaQWgoK0WfyY1no5a_kIcg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:26.418962+00	2023-04-25 05:50:26.418962+00	\N	73c3b027-c82c-4a0a-868c-ebdf6d0cdeed
+00000000-0000-0000-0000-000000000000	26	4mcBlzPoXzd65QN_nLBLtg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:26.554741+00	2023-04-25 05:50:26.554741+00	\N	5e5dd9c5-3a9a-4b65-b364-7970e07b0b2e
+00000000-0000-0000-0000-000000000000	27	HNfS1csoypAuz3kTxHrZQw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:26.669901+00	2023-04-25 05:50:26.669901+00	\N	46781a0b-e930-40b4-b2c6-55d28a509414
+00000000-0000-0000-0000-000000000000	28	cL_LHC_CmxDYIhqyLuTWlQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:26.762565+00	2023-04-25 05:50:26.762565+00	\N	9bd27f03-05b6-4619-bee2-bcfa4ad08f5d
+00000000-0000-0000-0000-000000000000	29	uw1Xn58uA81ov85isaxoQQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:26.890126+00	2023-04-25 05:50:26.890126+00	\N	ef2657df-ccd0-4f37-b915-ef715f525a8f
+00000000-0000-0000-0000-000000000000	30	Ek24UO_j_-KFn1cwiMH1HA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:26.951672+00	2023-04-25 05:50:26.951672+00	\N	17be6945-ea38-4a8e-9c47-795a7837e4d0
+00000000-0000-0000-0000-000000000000	31	Vki1_NTe6kB6Ulm3jqi-UQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.048966+00	2023-04-25 05:50:27.048966+00	\N	23ab0fec-0aa7-4877-8a5d-8eac2e053866
+00000000-0000-0000-0000-000000000000	32	RfPKkrin713Ok5hB9TmAtA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.158011+00	2023-04-25 05:50:27.158011+00	\N	45b69dce-5543-4692-b838-0aff93fee5ee
+00000000-0000-0000-0000-000000000000	33	lrxGFVZIvNcVxQaG2a0urA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.25146+00	2023-04-25 05:50:27.25146+00	\N	0aed7639-d77a-4dba-b575-7bab921a94fc
+00000000-0000-0000-0000-000000000000	34	Ug63fJnGEM9BAaM49G4HMQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.352408+00	2023-04-25 05:50:27.352408+00	\N	4893d4e9-eccd-4c22-81e3-846407d77b35
+00000000-0000-0000-0000-000000000000	35	QxFuTdXZW_p4qZ4W4GgLDA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.458886+00	2023-04-25 05:50:27.458886+00	\N	1c7059ae-30e1-438d-b653-a292b8c11ef4
+00000000-0000-0000-0000-000000000000	36	rywlzllFmd49u0jPyFd0hw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.564015+00	2023-04-25 05:50:27.564015+00	\N	5fe0a6b7-e815-4cd1-9a01-42bf45560a3f
+00000000-0000-0000-0000-000000000000	37	kDvLN9Rm2gpru0RIi8gaUw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.6647+00	2023-04-25 05:50:27.6647+00	\N	2d347f9c-a4e2-4806-a760-c534a644e92e
+00000000-0000-0000-0000-000000000000	38	GmevKg4ouGdlREVWCIPZ0Q	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:50:27.774166+00	2023-04-25 05:50:27.774166+00	\N	3b2c06ea-93e0-4034-b79f-bad4362080ce
+00000000-0000-0000-0000-000000000000	39	bBU94lYHBrwrolaVHBJ2TA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 05:59:03.263829+00	2023-04-25 05:59:03.263829+00	\N	7c0f1ac6-69dd-449e-a107-821dc9dae03f
+00000000-0000-0000-0000-000000000000	40	UBhtCd1AAysJhQUmDGMWzA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 08:17:36.234287+00	2023-04-25 08:17:36.234287+00	\N	83db5192-607b-427d-82cd-13042ccb79b2
+00000000-0000-0000-0000-000000000000	41	yA2BDrnVL6oBlC98juUACA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 08:17:40.535195+00	2023-04-25 08:17:40.535195+00	\N	d0491fcb-d4fd-4880-bd20-eb6c1cdc9538
+00000000-0000-0000-0000-000000000000	42	mqjUniCAe2oYL0XWaVb0bw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 08:17:45.702962+00	2023-04-25 08:17:45.702962+00	\N	249da893-ff2a-45f3-ab75-42a40c1917cd
+00000000-0000-0000-0000-000000000000	43	7fPVuQJJ4aQ_A3R2oNQBrA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 08:19:45.216316+00	2023-04-25 08:19:45.216316+00	\N	d9aff0c5-ed89-4f66-b6ec-5156be844190
+00000000-0000-0000-0000-000000000000	44	F9V94Jf_tmSxDZj6K7Nveg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 08:20:11.217095+00	2023-04-25 08:20:11.217095+00	\N	83cdb8a5-425b-496a-88a4-0d54a08451ee
+00000000-0000-0000-0000-000000000000	45	PFMdX6DgwjUeuzQCUXE6cQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 08:20:14.94277+00	2023-04-25 08:20:14.94277+00	\N	e822ae26-25b2-4579-89f9-7deab23be6c5
+00000000-0000-0000-0000-000000000000	46	xDa3tqAmuNsET4jFYL9QBA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 09:13:14.402407+00	2023-04-25 09:13:14.402407+00	\N	994e891e-2394-40a7-95ec-70905910e098
+00000000-0000-0000-0000-000000000000	47	CWdBbx9RkHaFDkDFrsX8Wg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 09:13:16.183573+00	2023-04-25 09:13:16.183573+00	\N	7e4232a0-9c16-40eb-a9d7-12e7d82b3538
+00000000-0000-0000-0000-000000000000	48	ZdWjp7Lpijwy4eTukRiLWw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 09:17:25.304501+00	2023-04-25 09:17:25.304501+00	\N	58301e44-de54-4b15-a22c-b672c2b3de00
+00000000-0000-0000-0000-000000000000	49	bAcECYgvbB1gRYQodbPnVQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 09:18:34.762461+00	2023-04-25 09:18:34.762461+00	\N	9b24c0cf-351b-4dea-a3bf-095c41f3a139
+00000000-0000-0000-0000-000000000000	50	2oJX8JG5oK2AUMfZc-T4PA	975ce13b-27dd-4312-86e3-c6b711b89164	t	2023-04-25 09:24:49.169868+00	2023-04-25 10:23:51.083373+00	\N	d76dbd67-09d7-4ac1-a1dc-c25451d7f4bb
+00000000-0000-0000-0000-000000000000	51	4y2P-BYaw9VnmhV2mG728w	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 10:23:51.086473+00	2023-04-25 10:23:51.086473+00	2oJX8JG5oK2AUMfZc-T4PA	d76dbd67-09d7-4ac1-a1dc-c25451d7f4bb
+00000000-0000-0000-0000-000000000000	52	1msFSaFZugpA-W2Lk80bIQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 11:17:06.54851+00	2023-04-25 11:17:06.54851+00	\N	36d1dd27-5403-4adc-93b9-72f9534dceb8
+00000000-0000-0000-0000-000000000000	53	ife13smdhGnFY1u6it1M6A	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 11:17:11.650705+00	2023-04-25 11:17:11.650705+00	\N	235719a3-29a2-47e0-87ec-e004bb5ce8e3
+00000000-0000-0000-0000-000000000000	54	lIOuh4i3rk3RmEiarj98Ww	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 11:17:18.122941+00	2023-04-25 11:17:18.122941+00	\N	240b43f2-bc2b-43e4-bcbc-2efddd7a2ddc
+00000000-0000-0000-0000-000000000000	55	kQBIJ3Ruv6EhEHSFTSiqzw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 11:21:05.081954+00	2023-04-25 11:21:05.081954+00	\N	76f529d0-cf8a-4561-9c76-5c65c91e3cbd
+00000000-0000-0000-0000-000000000000	56	SwB3vCpwmBorG-tmpZsDUg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 11:53:33.657117+00	2023-04-25 11:53:33.657117+00	\N	1cb95cd4-743d-48ce-bd40-6b9b0789b60b
+00000000-0000-0000-0000-000000000000	57	MlwJ8RKSaxjELdQwZ4vNFQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 12:10:17.748902+00	2023-04-25 12:10:17.748902+00	\N	3c7f9852-fe36-40f4-9803-8ebf8996b41e
+00000000-0000-0000-0000-000000000000	58	7-LaYDyXgX06P85qWUuQcQ	975ce13b-27dd-4312-86e3-c6b711b89164	t	2023-04-25 14:57:10.227306+00	2023-04-25 15:56:11.054587+00	\N	91d75c13-6d76-45e6-925b-970b9de79baa
+00000000-0000-0000-0000-000000000000	59	7JU43gZ-2tZNFhcR9BW-XQ	975ce13b-27dd-4312-86e3-c6b711b89164	t	2023-04-25 15:56:11.055016+00	2023-04-25 16:55:12.272406+00	7-LaYDyXgX06P85qWUuQcQ	91d75c13-6d76-45e6-925b-970b9de79baa
+00000000-0000-0000-0000-000000000000	60	XWdOj6wjvmgXIcc3jx5WIA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 16:55:12.272788+00	2023-04-25 16:55:12.272788+00	7JU43gZ-2tZNFhcR9BW-XQ	91d75c13-6d76-45e6-925b-970b9de79baa
+00000000-0000-0000-0000-000000000000	61	SuFqTGdxbJVmQePeH4jQNg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:46:23.398471+00	2023-04-25 17:46:23.398471+00	\N	b892280b-917f-40a9-83da-65a650658930
+00000000-0000-0000-0000-000000000000	62	NlLnsGCHlPTUm5jy3wZrvw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:49:23.689671+00	2023-04-25 17:49:23.689671+00	\N	5c1fd4ee-48f0-4df8-8f24-2955503b1c0e
+00000000-0000-0000-0000-000000000000	63	k1QYZ8mJCHBm1CNZDt_BxA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:51:12.718329+00	2023-04-25 17:51:12.718329+00	\N	f2d54706-6fc3-48f2-b649-f1612afc23eb
+00000000-0000-0000-0000-000000000000	64	iKK4swvVXtUr2_5PG8v8Lg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:51:14.470547+00	2023-04-25 17:51:14.470547+00	\N	f77d40c7-e2db-4e30-9c21-b438bb0f2b7e
+00000000-0000-0000-0000-000000000000	65	2PV6zNKeFN_niAAZymElzA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:51:44.443979+00	2023-04-25 17:51:44.443979+00	\N	d36c5e93-8c85-430a-9b11-d15455ed271a
+00000000-0000-0000-0000-000000000000	66	rLV8c-mbvcGOOKC68AcuNg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:52:50.997575+00	2023-04-25 17:52:50.997575+00	\N	623ce5ca-9ad5-4d76-9bd5-f68a4ccfef33
+00000000-0000-0000-0000-000000000000	67	k5iKHVOTC0BV_fgpVklf2g	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:55:24.924469+00	2023-04-25 17:55:24.924469+00	\N	031f8c19-7ace-4d5a-b02b-f1c504506d28
+00000000-0000-0000-0000-000000000000	68	K-yzUoXrMAa4k605CvOS5w	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:57:26.561943+00	2023-04-25 17:57:26.561943+00	\N	cdf8c2c7-f234-4604-a3c8-ce324a01ddfe
+00000000-0000-0000-0000-000000000000	69	q3x1cZ_7DSCuclpMB26MQg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 17:58:29.585272+00	2023-04-25 17:58:29.585272+00	\N	a8e73803-0906-4962-8ccd-9d551a356e6f
+00000000-0000-0000-0000-000000000000	70	lieU2KHPP1KCyLlbBOlqVA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:04:27.450277+00	2023-04-25 18:04:27.450277+00	\N	a3790897-f5e1-4a72-a315-fc97de9c1876
+00000000-0000-0000-0000-000000000000	71	0031cqrC2UGaQkvuHiIPmA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:07:16.078053+00	2023-04-25 18:07:16.078053+00	\N	62f6caf7-051b-4dc8-bbde-864a0e999139
+00000000-0000-0000-0000-000000000000	72	ix1utDLp-xuW-pxGSP6AaA	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:16:41.636991+00	2023-04-25 18:16:41.636991+00	\N	bf98a6d5-0670-4942-a9d1-f49b6d856741
+00000000-0000-0000-0000-000000000000	73	AWzkVFvhcdlECdyu9iKfjQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:21:37.42859+00	2023-04-25 18:21:37.42859+00	\N	6fa3d291-52bd-4644-87a1-9f3bfad3eb0b
+00000000-0000-0000-0000-000000000000	74	5pL3pIdrYVS4J8RccD3IUQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:29:55.198532+00	2023-04-25 18:29:55.198532+00	\N	3edfa873-f69e-45a0-93a9-3e7bf026f24b
+00000000-0000-0000-0000-000000000000	75	S3VM3oN8IoVn17dBS7ibMQ	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:31:46.656883+00	2023-04-25 18:31:46.656883+00	\N	9291bfab-20f0-4018-8ddf-2eea0209352c
+00000000-0000-0000-0000-000000000000	76	mdYIzYpAiLCm93FkBEB8qw	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:43:41.645877+00	2023-04-25 18:43:41.645877+00	\N	da18620c-6a16-4ae6-8ac4-3c358e1e9f0e
+00000000-0000-0000-0000-000000000000	77	u0tY7LSI-xWIeVEk0KvPTg	975ce13b-27dd-4312-86e3-c6b711b89164	f	2023-04-25 18:53:33.704672+00	2023-04-25 18:53:33.704672+00	\N	8e2c6a99-0460-43f4-b041-ddeaabe26f91
+00000000-0000-0000-0000-000000000000	78	N9KKXbSgf2Q6jjSbYr3WtA	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-25 19:14:48.251624+00	2023-04-25 19:14:48.251624+00	\N	39f910df-206f-4330-8d99-f0e92d693cf8
+00000000-0000-0000-0000-000000000000	79	YstEZMHiF9SVMBZtrZ_Vqw	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-25 19:29:52.894916+00	2023-04-25 19:29:52.894916+00	\N	affad910-8de3-4ee3-867a-8160a9e5f139
+00000000-0000-0000-0000-000000000000	80	TE6CT9vYX7uM599z7Sccrg	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-25 19:34:36.562908+00	2023-04-25 19:34:36.562908+00	\N	b6a1313f-c689-409d-b97d-cb45eedb7905
+00000000-0000-0000-0000-000000000000	81	r4ACr6c-dL6naHlv909X6g	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-25 19:38:43.195007+00	2023-04-25 19:38:43.195007+00	\N	921b0e99-521d-4874-901e-2d0ee174f94b
+00000000-0000-0000-0000-000000000000	82	LHlicAgUkr8LIDACFp86iQ	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-25 19:48:53.703703+00	2023-04-25 19:48:53.703703+00	\N	7fdd8e2f-0296-422d-a928-101e64c2e315
+00000000-0000-0000-0000-000000000000	83	obEVk5AXFiuIDtGZQ0qMXQ	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 05:54:34.318071+00	2023-04-26 05:54:34.318071+00	\N	8aa032dd-0912-4e9a-bd2b-8b15c6f58625
+00000000-0000-0000-0000-000000000000	84	OcNFeicsceA1ZzWH-bqG4A	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 06:07:18.968549+00	2023-04-26 06:07:18.968549+00	\N	b5fafd04-2754-4956-b58b-1eb2ad6cb77a
+00000000-0000-0000-0000-000000000000	85	6xSaI_TAU-EHEfGJKoTYkA	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 06:08:58.613985+00	2023-04-26 06:08:58.613985+00	\N	cafaff86-1bf2-4eeb-855d-37c1aae5c999
+00000000-0000-0000-0000-000000000000	86	57JtyuzwrLvwPe-CgF1_AA	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 06:10:13.433521+00	2023-04-26 06:10:13.433521+00	\N	dd6fe41e-16cf-4c5d-8353-cccf8f480ee4
+00000000-0000-0000-0000-000000000000	87	Iih6RfMFd2jaFkBkmQTd7A	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 06:16:05.701031+00	2023-04-26 06:16:05.701031+00	\N	de734369-f848-4b17-8301-12b637793c35
+00000000-0000-0000-0000-000000000000	88	lNbtEVxXvgIPMDgo0yhunw	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 06:22:59.243286+00	2023-04-26 06:22:59.243286+00	\N	e4e36826-e10a-402b-b78d-21ea07272a6d
+00000000-0000-0000-0000-000000000000	89	VhPy-7Op3t35ZxieuJOyCQ	d8fcf3a6-8ee2-4568-855b-c037a59036bb	f	2023-04-26 06:29:58.296555+00	2023-04-26 06:29:58.296555+00	\N	09cb1137-a709-47b8-8f72-a36113bca001
+00000000-0000-0000-0000-000000000000	158	C1d_jKOKj9g5PvxZ0S1H_w	5d39d031-c411-4d33-a61f-753acd411ebc	f	2023-05-25 15:19:06.619488+00	2023-05-25 15:19:06.619488+00	\N	03632241-3289-4c40-803b-a07085a43220
+00000000-0000-0000-0000-000000000000	159	jz2JCKZ1p6e2LDjh4XYkDw	5d39d031-c411-4d33-a61f-753acd411ebc	f	2023-05-25 15:24:16.105639+00	2023-05-25 15:24:16.105639+00	\N	d0dceae2-168c-4e9c-a813-79f04a0d2a4e
+00000000-0000-0000-0000-000000000000	160	8aQHv8eapA2CRAy3L0XguQ	5d39d031-c411-4d33-a61f-753acd411ebc	f	2023-05-25 15:29:39.374912+00	2023-05-25 15:29:39.374912+00	\N	a679d352-68d4-42e5-8564-9af797b2c298
+00000000-0000-0000-0000-000000000000	161	ooIHRpaFx7pTlRuPVQNIRA	5d39d031-c411-4d33-a61f-753acd411ebc	f	2023-05-25 16:01:40.1439+00	2023-05-25 16:01:40.1439+00	\N	55f4d058-32e5-46b0-97ed-872f22c7a18c
+00000000-0000-0000-0000-000000000000	162	8ofQZO_AgwbWFEnzuA3x7w	5d39d031-c411-4d33-a61f-753acd411ebc	t	2023-05-25 16:04:55.273401+00	2023-05-26 15:44:45.550123+00	\N	7fa58aff-2154-43be-a97e-9731ce15110b
+00000000-0000-0000-0000-000000000000	163	MEwCI9xCKuxC50HstvYPXg	5d39d031-c411-4d33-a61f-753acd411ebc	f	2023-05-26 15:44:45.550583+00	2023-05-26 15:44:45.550583+00	8ofQZO_AgwbWFEnzuA3x7w	7fa58aff-2154-43be-a97e-9731ce15110b
+\.
+
+
+--
+-- Data for Name: saml_providers; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.saml_providers (id, sso_provider_id, entity_id, metadata_xml, metadata_url, attribute_mapping, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: saml_relay_states; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.saml_relay_states (id, sso_provider_id, request_id, for_email, redirect_to, from_ip_address, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: schema_migrations; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.schema_migrations (version) FROM stdin;
+20171026211738
+20171026211808
+20171026211834
+20180103212743
+20180108183307
+20180119214651
+20180125194653
+00
+20210710035447
+20210722035447
+20210730183235
+20210909172000
+20210927181326
+20211122151130
+20211124214934
+20211202183645
+20220114185221
+20220114185340
+20220224000811
+20220323170000
+20220429102000
+20220531120530
+20220614074223
+20220811173540
+20221003041349
+20221003041400
+20221011041400
+20221020193600
+20221021073300
+20221021082433
+20221027105023
+20221114143122
+20221114143410
+20221125140132
+20221208132122
+20221215195500
+20221215195800
+20221215195900
+20230116124310
+20230116124412
+20230131181311
+20230322519590
+20230402418590
+20230411005111
+\.
+
+
+--
+-- Data for Name: sessions; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_after) FROM stdin;
+307d4357-4ed0-4604-a1e1-70e47dea4eae	8f58711c-79ee-4616-af93-a6162c8683fc	2023-04-25 04:52:33.011429+00	2023-04-25 04:52:33.011429+00	\N	aal1	\N
+61a34c5f-e0f5-4ac8-a012-23eb02e47a9e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:44:42.574942+00	2023-04-25 05:44:42.574942+00	\N	aal1	\N
+bcbbfae8-a983-416b-b4a9-fbb9b1e898e2	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:18.948022+00	2023-04-25 05:50:18.948022+00	\N	aal1	\N
+4343fe3b-6350-47ae-b314-8440141624b7	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:19.00396+00	2023-04-25 05:50:19.00396+00	\N	aal1	\N
+1445ebe7-1833-4f57-8695-8b037230f017	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:19.089293+00	2023-04-25 05:50:19.089293+00	\N	aal1	\N
+73c3b027-c82c-4a0a-868c-ebdf6d0cdeed	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:26.418166+00	2023-04-25 05:50:26.418166+00	\N	aal1	\N
+5e5dd9c5-3a9a-4b65-b364-7970e07b0b2e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:26.554171+00	2023-04-25 05:50:26.554171+00	\N	aal1	\N
+46781a0b-e930-40b4-b2c6-55d28a509414	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:26.669331+00	2023-04-25 05:50:26.669331+00	\N	aal1	\N
+9bd27f03-05b6-4619-bee2-bcfa4ad08f5d	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:26.762031+00	2023-04-25 05:50:26.762031+00	\N	aal1	\N
+ef2657df-ccd0-4f37-b915-ef715f525a8f	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:26.88959+00	2023-04-25 05:50:26.88959+00	\N	aal1	\N
+17be6945-ea38-4a8e-9c47-795a7837e4d0	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:26.95113+00	2023-04-25 05:50:26.95113+00	\N	aal1	\N
+23ab0fec-0aa7-4877-8a5d-8eac2e053866	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.048323+00	2023-04-25 05:50:27.048323+00	\N	aal1	\N
+45b69dce-5543-4692-b838-0aff93fee5ee	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.157388+00	2023-04-25 05:50:27.157388+00	\N	aal1	\N
+0aed7639-d77a-4dba-b575-7bab921a94fc	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.250823+00	2023-04-25 05:50:27.250823+00	\N	aal1	\N
+4893d4e9-eccd-4c22-81e3-846407d77b35	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.351826+00	2023-04-25 05:50:27.351826+00	\N	aal1	\N
+1c7059ae-30e1-438d-b653-a292b8c11ef4	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.458311+00	2023-04-25 05:50:27.458311+00	\N	aal1	\N
+5fe0a6b7-e815-4cd1-9a01-42bf45560a3f	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.5635+00	2023-04-25 05:50:27.5635+00	\N	aal1	\N
+2d347f9c-a4e2-4806-a760-c534a644e92e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.664121+00	2023-04-25 05:50:27.664121+00	\N	aal1	\N
+3b2c06ea-93e0-4034-b79f-bad4362080ce	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:50:27.773634+00	2023-04-25 05:50:27.773634+00	\N	aal1	\N
+7c0f1ac6-69dd-449e-a107-821dc9dae03f	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 05:59:03.263277+00	2023-04-25 05:59:03.263277+00	\N	aal1	\N
+83db5192-607b-427d-82cd-13042ccb79b2	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 08:17:36.233646+00	2023-04-25 08:17:36.233646+00	\N	aal1	\N
+d0491fcb-d4fd-4880-bd20-eb6c1cdc9538	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 08:17:40.534613+00	2023-04-25 08:17:40.534613+00	\N	aal1	\N
+249da893-ff2a-45f3-ab75-42a40c1917cd	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 08:17:45.702217+00	2023-04-25 08:17:45.702217+00	\N	aal1	\N
+d9aff0c5-ed89-4f66-b6ec-5156be844190	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 08:19:45.215639+00	2023-04-25 08:19:45.215639+00	\N	aal1	\N
+83cdb8a5-425b-496a-88a4-0d54a08451ee	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 08:20:11.216503+00	2023-04-25 08:20:11.216503+00	\N	aal1	\N
+e822ae26-25b2-4579-89f9-7deab23be6c5	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 08:20:14.942163+00	2023-04-25 08:20:14.942163+00	\N	aal1	\N
+994e891e-2394-40a7-95ec-70905910e098	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 09:13:14.40177+00	2023-04-25 09:13:14.40177+00	\N	aal1	\N
+7e4232a0-9c16-40eb-a9d7-12e7d82b3538	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 09:13:16.183001+00	2023-04-25 09:13:16.183001+00	\N	aal1	\N
+58301e44-de54-4b15-a22c-b672c2b3de00	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 09:17:25.30372+00	2023-04-25 09:17:25.30372+00	\N	aal1	\N
+9b24c0cf-351b-4dea-a3bf-095c41f3a139	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 09:18:34.761775+00	2023-04-25 09:18:34.761775+00	\N	aal1	\N
+d76dbd67-09d7-4ac1-a1dc-c25451d7f4bb	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 09:24:49.168924+00	2023-04-25 09:24:49.168924+00	\N	aal1	\N
+36d1dd27-5403-4adc-93b9-72f9534dceb8	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 11:17:06.547781+00	2023-04-25 11:17:06.547781+00	\N	aal1	\N
+235719a3-29a2-47e0-87ec-e004bb5ce8e3	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 11:17:11.650037+00	2023-04-25 11:17:11.650037+00	\N	aal1	\N
+240b43f2-bc2b-43e4-bcbc-2efddd7a2ddc	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 11:17:18.122265+00	2023-04-25 11:17:18.122265+00	\N	aal1	\N
+76f529d0-cf8a-4561-9c76-5c65c91e3cbd	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 11:21:05.081236+00	2023-04-25 11:21:05.081236+00	\N	aal1	\N
+1cb95cd4-743d-48ce-bd40-6b9b0789b60b	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 11:53:33.656446+00	2023-04-25 11:53:33.656446+00	\N	aal1	\N
+3c7f9852-fe36-40f4-9803-8ebf8996b41e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 12:10:17.748334+00	2023-04-25 12:10:17.748334+00	\N	aal1	\N
+91d75c13-6d76-45e6-925b-970b9de79baa	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 14:57:10.226657+00	2023-04-25 14:57:10.226657+00	\N	aal1	\N
+b892280b-917f-40a9-83da-65a650658930	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:46:23.397832+00	2023-04-25 17:46:23.397832+00	\N	aal1	\N
+5c1fd4ee-48f0-4df8-8f24-2955503b1c0e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:49:23.689125+00	2023-04-25 17:49:23.689125+00	\N	aal1	\N
+f2d54706-6fc3-48f2-b649-f1612afc23eb	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:51:12.717703+00	2023-04-25 17:51:12.717703+00	\N	aal1	\N
+f77d40c7-e2db-4e30-9c21-b438bb0f2b7e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:51:14.470015+00	2023-04-25 17:51:14.470015+00	\N	aal1	\N
+d36c5e93-8c85-430a-9b11-d15455ed271a	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:51:44.443273+00	2023-04-25 17:51:44.443273+00	\N	aal1	\N
+623ce5ca-9ad5-4d76-9bd5-f68a4ccfef33	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:52:50.99703+00	2023-04-25 17:52:50.99703+00	\N	aal1	\N
+031f8c19-7ace-4d5a-b02b-f1c504506d28	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:55:24.923844+00	2023-04-25 17:55:24.923844+00	\N	aal1	\N
+cdf8c2c7-f234-4604-a3c8-ce324a01ddfe	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:57:26.561201+00	2023-04-25 17:57:26.561201+00	\N	aal1	\N
+a8e73803-0906-4962-8ccd-9d551a356e6f	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 17:58:29.584744+00	2023-04-25 17:58:29.584744+00	\N	aal1	\N
+a3790897-f5e1-4a72-a315-fc97de9c1876	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:04:27.449685+00	2023-04-25 18:04:27.449685+00	\N	aal1	\N
+62f6caf7-051b-4dc8-bbde-864a0e999139	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:07:16.076999+00	2023-04-25 18:07:16.076999+00	\N	aal1	\N
+bf98a6d5-0670-4942-a9d1-f49b6d856741	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:16:41.635588+00	2023-04-25 18:16:41.635588+00	\N	aal1	\N
+6fa3d291-52bd-4644-87a1-9f3bfad3eb0b	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:21:37.428014+00	2023-04-25 18:21:37.428014+00	\N	aal1	\N
+3edfa873-f69e-45a0-93a9-3e7bf026f24b	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:29:55.197904+00	2023-04-25 18:29:55.197904+00	\N	aal1	\N
+9291bfab-20f0-4018-8ddf-2eea0209352c	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:31:46.656337+00	2023-04-25 18:31:46.656337+00	\N	aal1	\N
+da18620c-6a16-4ae6-8ac4-3c358e1e9f0e	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:43:41.645174+00	2023-04-25 18:43:41.645174+00	\N	aal1	\N
+8e2c6a99-0460-43f4-b041-ddeaabe26f91	975ce13b-27dd-4312-86e3-c6b711b89164	2023-04-25 18:53:33.704033+00	2023-04-25 18:53:33.704033+00	\N	aal1	\N
+39f910df-206f-4330-8d99-f0e92d693cf8	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-25 19:14:48.250867+00	2023-04-25 19:14:48.250867+00	\N	aal1	\N
+affad910-8de3-4ee3-867a-8160a9e5f139	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-25 19:29:52.894207+00	2023-04-25 19:29:52.894207+00	\N	aal1	\N
+b6a1313f-c689-409d-b97d-cb45eedb7905	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-25 19:34:36.562171+00	2023-04-25 19:34:36.562171+00	\N	aal1	\N
+921b0e99-521d-4874-901e-2d0ee174f94b	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-25 19:38:43.193308+00	2023-04-25 19:38:43.193308+00	\N	aal1	\N
+7fdd8e2f-0296-422d-a928-101e64c2e315	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-25 19:48:53.702986+00	2023-04-25 19:48:53.702986+00	\N	aal1	\N
+8aa032dd-0912-4e9a-bd2b-8b15c6f58625	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 05:54:34.316777+00	2023-04-26 05:54:34.316777+00	\N	aal1	\N
+b5fafd04-2754-4956-b58b-1eb2ad6cb77a	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 06:07:18.965703+00	2023-04-26 06:07:18.965703+00	\N	aal1	\N
+cafaff86-1bf2-4eeb-855d-37c1aae5c999	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 06:08:58.613223+00	2023-04-26 06:08:58.613223+00	\N	aal1	\N
+dd6fe41e-16cf-4c5d-8353-cccf8f480ee4	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 06:10:13.432766+00	2023-04-26 06:10:13.432766+00	\N	aal1	\N
+de734369-f848-4b17-8301-12b637793c35	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 06:16:05.698167+00	2023-04-26 06:16:05.698167+00	\N	aal1	\N
+e4e36826-e10a-402b-b78d-21ea07272a6d	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 06:22:59.241282+00	2023-04-26 06:22:59.241282+00	\N	aal1	\N
+09cb1137-a709-47b8-8f72-a36113bca001	d8fcf3a6-8ee2-4568-855b-c037a59036bb	2023-04-26 06:29:58.294622+00	2023-04-26 06:29:58.294622+00	\N	aal1	\N
+03632241-3289-4c40-803b-a07085a43220	5d39d031-c411-4d33-a61f-753acd411ebc	2023-05-25 15:19:06.61858+00	2023-05-25 15:19:06.61858+00	\N	aal1	\N
+d0dceae2-168c-4e9c-a813-79f04a0d2a4e	5d39d031-c411-4d33-a61f-753acd411ebc	2023-05-25 15:24:16.104909+00	2023-05-25 15:24:16.104909+00	\N	aal1	\N
+a679d352-68d4-42e5-8564-9af797b2c298	5d39d031-c411-4d33-a61f-753acd411ebc	2023-05-25 15:29:39.374361+00	2023-05-25 15:29:39.374361+00	\N	aal1	\N
+55f4d058-32e5-46b0-97ed-872f22c7a18c	5d39d031-c411-4d33-a61f-753acd411ebc	2023-05-25 16:01:40.143119+00	2023-05-25 16:01:40.143119+00	\N	aal1	\N
+7fa58aff-2154-43be-a97e-9731ce15110b	5d39d031-c411-4d33-a61f-753acd411ebc	2023-05-25 16:04:55.27282+00	2023-05-25 16:04:55.27282+00	\N	aal1	\N
+\.
+
+
+--
+-- Data for Name: sso_domains; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.sso_domains (id, sso_provider_id, domain, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: sso_providers; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.sso_providers (id, resource_id, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, invited_at, confirmation_token, confirmation_sent_at, recovery_token, recovery_sent_at, email_change_token_new, email_change, email_change_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, is_super_admin, created_at, updated_at, phone, phone_confirmed_at, phone_change, phone_change_token, phone_change_sent_at, email_change_token_current, email_change_confirm_status, banned_until, reauthentication_token, reauthentication_sent_at, is_sso_user, deleted_at) FROM stdin;
+00000000-0000-0000-0000-000000000000	d8fcf3a6-8ee2-4568-855b-c037a59036bb	authenticated	authenticated	outlet_bogor@gmail.com	$2a$10$l3wO020jK.Oi5sgtiVzW8ORkjiCvIocXauPr1Q4CQamZ/dsf/EYwK	2023-04-25 19:08:59.049645+00	\N		\N		\N			\N	2023-04-26 06:29:58.294565+00	{"provider": "email", "providers": ["email"]}	{}	\N	2023-04-25 19:08:59.045667+00	2023-04-26 06:29:58.298634+00	\N	\N			\N		0	\N		\N	f	\N
+00000000-0000-0000-0000-000000000000	87bc7b19-9ddc-4724-8f6b-d4d0b0dc7ebb	authenticated	authenticated	admin@gmail.com	$2a$06$hg2uyqJd/9Yk27pOty8A.ushQ.kOKSNwhPRqX3fDa4vw/1DVNMvXu	2023-04-24 15:58:33.7358+00	\N		\N		\N			\N	\N	{"provider": "email", "providers": ["email"]}	{}	\N	2023-04-24 15:58:33.731228+00	2023-04-24 15:58:33.738249+00	\N	\N			\N		0	\N		\N	f	\N
+00000000-0000-0000-0000-000000000000	8f58711c-79ee-4616-af93-a6162c8683fc	authenticated	authenticated	kasir@gmail.com	$2a$06$ivTvD5bR0ELzaTPw6S5ZwegkmUfdxKsRYWsxGB5Yx3X/g0pn01HZm	2023-04-25 03:53:12.140707+00	\N		\N	f18117611ca01171d8709ea470f1f808ba69fd2a18eebb500016d784	2023-04-25 05:15:26.885793+00			\N	2023-04-25 04:52:33.011359+00	{"provider": "email", "providers": ["email"]}	{}	\N	2023-04-25 03:53:12.137902+00	2023-04-25 05:15:29.486688+00	\N	\N			\N		0	\N		\N	f	\N
+00000000-0000-0000-0000-000000000000	975ce13b-27dd-4312-86e3-c6b711b89164	authenticated	authenticated	dev@email.io	$2a$06$MRGjv8ay/f7qdOuxkF2enOz0gYNblttSn/1HvISx5vV/Qzo3mlluy	2023-04-25 05:41:12.507493+00	\N		2023-04-25 05:41:12.507493+00		\N			\N	2023-04-25 18:53:33.703982+00	{"provider": "email", "providers": ["email"]}	{}	f	2023-04-25 05:41:12.507493+00	2023-04-25 18:53:33.705536+00	\N	\N			\N		0	\N		\N	f	\N
+00000000-0000-0000-0000-000000000000	5d39d031-c411-4d33-a61f-753acd411ebc	authenticated	authenticated	pegawai@gmail.com	$2a$10$yoIyk7Cfu/UVEBtvgv/ele5q8I16dgF2e.W3LojbGhx4fnPE716uS	2023-05-20 05:16:13.245488+00	\N		\N		\N			\N	2023-05-25 16:04:55.272751+00	{"provider": "email", "providers": ["email"]}	{}	\N	2023-05-20 05:16:13.239379+00	2023-05-26 15:44:45.551513+00	\N	\N			\N		0	\N		\N	f	\N
+\.
+
+
+--
+-- Data for Name: key; Type: TABLE DATA; Schema: pgsodium; Owner: -
+--
+
+COPY pgsodium.key (id, status, created, expires, key_type, key_id, key_context, name, associated_data, raw_key, raw_key_nonce, parent_key, comment, user_data) FROM stdin;
+\.
+
+
+--
+-- Data for Name: ctgr; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.ctgr (ctgr_code, ctgr_name, create_username, update_username, version, created_at, updated_at, id) FROM stdin;
+CUCI	Cuci Setrika	system	system	0	\N	\N	1
+SETRIKA	Setrika	system	system	0	\N	\N	2
+SUBSCRIBE	Langganan	system	system	0	\N	\N	3
+\.
+
+
+--
+-- Data for Name: customer; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.customer (id, customer_name, phone, create_username, update_username, version, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: handover; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.handover (id, transaction_id, delivery_type, create_username, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: laundry_item; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.laundry_item (id, item_code, item_name, create_username, update_username, version, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: parfume; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.parfume (id, parfume_name, created_at, updated_at, create_username, update_username, parfume_code, version) FROM stdin;
+1	Downy	1684938156	1684938156	system	system	PF001	0
+2	Onix	1684938156	1684938156	system	system	PF002	0
+\.
+
+
+--
+-- Data for Name: payment; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.payment (id, transaction_id, amount, create_username, create_datetime) FROM stdin;
+\.
+
+
+--
+-- Data for Name: profile; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.profile (user_id, full_name, permissions, username, email, id) FROM stdin;
+d8fcf3a6-8ee2-4568-855b-c037a59036bb	Manager	{ADMIN}	manager	outlet_bogor@gmail.com	d43bd21a-93ef-4bc6-82a4-797a6f53fd45
+\.
+
+
+--
+-- Data for Name: service; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.service (id, created_at, updated_at, create_username, update_username, sub_ctgr_id, service_name, price, version, service_code) FROM stdin;
+1	1685026914	1685026914	system	system	2	Regular	6000	0	CUCI001
+2	1685026914	1685026914	system	system	2	Express	10000	0	CUCI002
+3	1685029964	1685029964	system	system	6	Cuci Jas	20000	0	CUCI003
+\.
+
+
+--
+-- Data for Name: sub_ctgr; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.sub_ctgr (sub_ctgr_name, create_username, update_username, version, created_at, updated_at, id, ctgr_id, uom_id, sub_ctgr_code) FROM stdin;
+Cuci Setrika Satuan	system	system	0	1685029964	1685029964	6	1	1	CUCISATUAN
+Cuci Setrika Kiloan	system	system	0	1685029964	1685029964	2	1	1	CUCIKILOAN
+\.
+
+
+--
+-- Data for Name: subscription; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.subscription (id, transaction_id, version, quota, start_date, create_username, update_username, created_at, updated_at, end_date) FROM stdin;
+\.
+
+
+--
+-- Data for Name: subscription_policy; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.subscription_policy (id, created_at, periode, quota, version, update_at, create_username, update_username, service_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: transaction; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.transaction (id, transaction_code, service_id, customer_id, total, transaction_status, version, create_username, update_username, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: transaction_detail; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.transaction_detail (id, transaction_id, service_id, qty, price, create_username, created_at, update_username, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: uom; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY public.uom (uom_code, uom_name, create_username, update_username, version, created_at, updated_at, id) FROM stdin;
+KG	Kilogram	system	system	0	\N	\N	1
+PCS	Pieces	system	system	0	\N	\N	2
+BULAN	Bulan	system	system	0	\N	\N	3
+\.
+
+
+--
+-- Data for Name: buckets; Type: TABLE DATA; Schema: storage; Owner: -
+--
+
+COPY storage.buckets (id, name, owner, created_at, updated_at, public, avif_autodetection, file_size_limit, allowed_mime_types) FROM stdin;
+\.
+
+
+--
+-- Data for Name: migrations; Type: TABLE DATA; Schema: storage; Owner: -
+--
+
+COPY storage.migrations (id, name, hash, executed_at) FROM stdin;
+0	create-migrations-table	e18db593bcde2aca2a408c4d1100f6abba2195df	2023-01-31 03:23:39.314159
+1	initialmigration	6ab16121fbaa08bbd11b712d05f358f9b555d777	2023-01-31 03:23:39.321318
+2	pathtoken-column	49756be03be4c17bb85fe70d4a861f27de7e49ad	2023-01-31 03:23:39.324316
+3	add-migrations-rls	bb5d124c53d68635a883e399426c6a5a25fc893d	2023-01-31 03:23:39.352372
+4	add-size-functions	6d79007d04f5acd288c9c250c42d2d5fd286c54d	2023-01-31 03:23:39.356141
+5	change-column-name-in-get-size	fd65688505d2ffa9fbdc58a944348dd8604d688c	2023-01-31 03:23:39.362565
+6	add-rls-to-buckets	63e2bab75a2040fee8e3fb3f15a0d26f3380e9b6	2023-01-31 03:23:39.368676
+7	add-public-to-buckets	82568934f8a4d9e0a85f126f6fb483ad8214c418	2023-01-31 03:23:39.372149
+8	fix-search-function	1a43a40eddb525f2e2f26efd709e6c06e58e059c	2023-01-31 03:23:39.376519
+9	search-files-search-function	34c096597eb8b9d077fdfdde9878c88501b2fafc	2023-01-31 03:23:39.380398
+10	add-trigger-to-auto-update-updated_at-column	37d6bb964a70a822e6d37f22f457b9bca7885928	2023-01-31 03:23:39.388013
+11	add-automatic-avif-detection-flag	bd76c53a9c564c80d98d119c1b3a28e16c8152db	2023-04-15 15:12:11.030262
+12	add-bucket-custom-limits	cbe0a4c32a0e891554a21020433b7a4423c07ee7	2023-04-15 15:12:11.042998
+13	use-bytes-for-max-size	7a158ebce8a0c2801c9c65b7e9b2f98f68b3874e	2023-04-15 15:12:11.054724
+14	add-can-insert-object-function	273193826bca7e0990b458d1ba72f8aa27c0d825	2023-04-15 15:12:11.1432
+15	add-version	e821a779d26612899b8c2dfe20245f904a327c4f	2023-04-15 15:12:11.149302
+\.
+
+
+--
+-- Data for Name: objects; Type: TABLE DATA; Schema: storage; Owner: -
+--
+
+COPY storage.objects (id, bucket_id, name, owner, created_at, updated_at, last_accessed_at, metadata, version) FROM stdin;
+\.
+
+
+--
+-- Data for Name: secrets; Type: TABLE DATA; Schema: vault; Owner: -
+--
+
+COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Name: refresh_tokens_id_seq; Type: SEQUENCE SET; Schema: auth; Owner: -
+--
+
+SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 163, true);
+
+
+--
+-- Name: key_key_id_seq; Type: SEQUENCE SET; Schema: pgsodium; Owner: -
+--
+
+SELECT pg_catalog.setval('pgsodium.key_key_id_seq', 1, false);
+
+
+--
+-- Name: detail_subscription_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.detail_subscription_id_seq', 1, false);
+
+
+--
+-- Name: parfume_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.parfume_id_seq', 2, true);
+
+
+--
+-- Name: service_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.service_id_seq', 3, true);
+
+
+--
+-- Name: sub_ctgr_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.sub_ctgr_id_seq', 6, true);
+
+
+--
+-- Name: uom_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('public.uom_id_seq', 1, false);
+
+
+--
+-- Name: mfa_amr_claims amr_id_pk; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT amr_id_pk PRIMARY KEY (id);
+
+
+--
+-- Name: audit_log_entries audit_log_entries_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.audit_log_entries
+    ADD CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: flow_state flow_state_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.flow_state
+    ADD CONSTRAINT flow_state_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: identities identities_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_pkey PRIMARY KEY (provider, id);
+
+
+--
+-- Name: instances instances_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.instances
+    ADD CONSTRAINT instances_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mfa_amr_claims mfa_amr_claims_session_id_authentication_method_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT mfa_amr_claims_session_id_authentication_method_pkey UNIQUE (session_id, authentication_method);
+
+
+--
+-- Name: mfa_challenges mfa_challenges_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_challenges
+    ADD CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mfa_factors mfa_factors_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_tokens refresh_tokens_token_unique; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_token_unique UNIQUE (token);
+
+
+--
+-- Name: saml_providers saml_providers_entity_id_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_entity_id_key UNIQUE (entity_id);
+
+
+--
+-- Name: saml_providers saml_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: saml_relay_states saml_relay_states_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.schema_migrations
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_domains sso_domains_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_domains
+    ADD CONSTRAINT sso_domains_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sso_providers sso_providers_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_providers
+    ADD CONSTRAINT sso_providers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_phone_key; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.users
+    ADD CONSTRAINT users_phone_key UNIQUE (phone);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ctgr ctgr_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ctgr
+    ADD CONSTRAINT ctgr_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: customer customer_phone_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer
+    ADD CONSTRAINT customer_phone_key UNIQUE (phone);
+
+
+--
+-- Name: customer customer_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer
+    ADD CONSTRAINT customer_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: subscription_policy detail_subscription_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription_policy
+    ADD CONSTRAINT detail_subscription_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: handover handover_delivery_type_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.handover
+    ADD CONSTRAINT handover_delivery_type_key UNIQUE (delivery_type);
+
+
+--
+-- Name: handover handover_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.handover
+    ADD CONSTRAINT handover_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: handover handover_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.handover
+    ADD CONSTRAINT handover_transaction_id_key UNIQUE (transaction_id);
+
+
+--
+-- Name: laundry_item laundry_item_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.laundry_item
+    ADD CONSTRAINT laundry_item_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: parfume parfume_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.parfume
+    ADD CONSTRAINT parfume_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment payment_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payment payment_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_transaction_id_key UNIQUE (transaction_id);
+
+
+--
+-- Name: profile profile_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile
+    ADD CONSTRAINT profile_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: service service_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service
+    ADD CONSTRAINT service_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: service service_service_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service
+    ADD CONSTRAINT service_service_code_key UNIQUE (service_code);
+
+
+--
+-- Name: sub_ctgr sub_ctgr_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sub_ctgr
+    ADD CONSTRAINT sub_ctgr_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: sub_ctgr sub_ctgr_sub_ctgr_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sub_ctgr
+    ADD CONSTRAINT sub_ctgr_sub_ctgr_code_key UNIQUE (sub_ctgr_code);
+
+
+--
+-- Name: subscription subscription_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription
+    ADD CONSTRAINT subscription_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: subscription subscription_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.subscription
+    ADD CONSTRAINT subscription_transaction_id_key UNIQUE (transaction_id);
+
+
+--
+-- Name: transaction_detail transaction_detail_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction_detail
+    ADD CONSTRAINT transaction_detail_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: transaction transaction_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: transaction transaction_transaction_coode_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_transaction_coode_key UNIQUE (transaction_code);
+
+
+--
+-- Name: uom uom_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uom
+    ADD CONSTRAINT uom_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: uom uom_uom_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.uom
+    ADD CONSTRAINT uom_uom_code_key UNIQUE (uom_code);
+
+
+--
+-- Name: profile users_username_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile
+    ADD CONSTRAINT users_username_key UNIQUE (username);
+
+
+--
+-- Name: buckets buckets_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.buckets
+    ADD CONSTRAINT buckets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: migrations migrations_name_key; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.migrations
+    ADD CONSTRAINT migrations_name_key UNIQUE (name);
+
+
+--
+-- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.migrations
+    ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: objects objects_pkey; Type: CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: audit_logs_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX audit_logs_instance_id_idx ON auth.audit_log_entries USING btree (instance_id);
+
+
+--
+-- Name: confirmation_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: email_change_token_current_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: email_change_token_new_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: factor_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX factor_id_created_at_idx ON auth.mfa_factors USING btree (user_id, created_at);
+
+
+--
+-- Name: identities_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX identities_email_idx ON auth.identities USING btree (email text_pattern_ops);
+
+
+--
+-- Name: INDEX identities_email_idx; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON INDEX auth.identities_email_idx IS 'Auth: Ensures indexed queries on the email column';
+
+
+--
+-- Name: identities_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX identities_user_id_idx ON auth.identities USING btree (user_id);
+
+
+--
+-- Name: idx_auth_code; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_auth_code ON auth.flow_state USING btree (auth_code);
+
+
+--
+-- Name: idx_user_id_auth_method; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX idx_user_id_auth_method ON auth.flow_state USING btree (user_id, authentication_method);
+
+
+--
+-- Name: mfa_factors_user_friendly_name_unique; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX mfa_factors_user_friendly_name_unique ON auth.mfa_factors USING btree (friendly_name, user_id) WHERE (TRIM(BOTH FROM friendly_name) <> ''::text);
+
+
+--
+-- Name: reauthentication_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: recovery_token_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*$'::text);
+
+
+--
+-- Name: refresh_tokens_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_instance_id_idx ON auth.refresh_tokens USING btree (instance_id);
+
+
+--
+-- Name: refresh_tokens_instance_id_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_instance_id_user_id_idx ON auth.refresh_tokens USING btree (instance_id, user_id);
+
+
+--
+-- Name: refresh_tokens_parent_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_parent_idx ON auth.refresh_tokens USING btree (parent);
+
+
+--
+-- Name: refresh_tokens_session_id_revoked_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX refresh_tokens_session_id_revoked_idx ON auth.refresh_tokens USING btree (session_id, revoked);
+
+
+--
+-- Name: saml_providers_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_providers_sso_provider_id_idx ON auth.saml_providers USING btree (sso_provider_id);
+
+
+--
+-- Name: saml_relay_states_for_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_relay_states_for_email_idx ON auth.saml_relay_states USING btree (for_email);
+
+
+--
+-- Name: saml_relay_states_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX saml_relay_states_sso_provider_id_idx ON auth.saml_relay_states USING btree (sso_provider_id);
+
+
+--
+-- Name: sessions_user_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sessions_user_id_idx ON auth.sessions USING btree (user_id);
+
+
+--
+-- Name: sso_domains_domain_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX sso_domains_domain_idx ON auth.sso_domains USING btree (lower(domain));
+
+
+--
+-- Name: sso_domains_sso_provider_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX sso_domains_sso_provider_id_idx ON auth.sso_domains USING btree (sso_provider_id);
+
+
+--
+-- Name: sso_providers_resource_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX sso_providers_resource_id_idx ON auth.sso_providers USING btree (lower(resource_id));
+
+
+--
+-- Name: user_id_created_at_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX user_id_created_at_idx ON auth.sessions USING btree (user_id, created_at);
+
+
+--
+-- Name: users_email_partial_key; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE UNIQUE INDEX users_email_partial_key ON auth.users USING btree (email) WHERE (is_sso_user = false);
+
+
+--
+-- Name: INDEX users_email_partial_key; Type: COMMENT; Schema: auth; Owner: -
+--
+
+COMMENT ON INDEX auth.users_email_partial_key IS 'Auth: A partial unique index that applies only when is_sso_user is false';
+
+
+--
+-- Name: users_instance_id_email_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX users_instance_id_email_idx ON auth.users USING btree (instance_id, lower((email)::text));
+
+
+--
+-- Name: users_instance_id_idx; Type: INDEX; Schema: auth; Owner: -
+--
+
+CREATE INDEX users_instance_id_idx ON auth.users USING btree (instance_id);
+
+
+--
+-- Name: bname; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE UNIQUE INDEX bname ON storage.buckets USING btree (name);
+
+
+--
+-- Name: bucketid_objname; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE UNIQUE INDEX bucketid_objname ON storage.objects USING btree (bucket_id, name);
+
+
+--
+-- Name: name_prefix_search; Type: INDEX; Schema: storage; Owner: -
+--
+
+CREATE INDEX name_prefix_search ON storage.objects USING btree (name text_pattern_ops);
+
+
+--
+-- Name: objects update_objects_updated_at; Type: TRIGGER; Schema: storage; Owner: -
+--
+
+CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column();
+
+
+--
+-- Name: identities identities_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.identities
+    ADD CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mfa_amr_claims mfa_amr_claims_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_amr_claims
+    ADD CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mfa_challenges mfa_challenges_auth_factor_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_challenges
+    ADD CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mfa_factors mfa_factors_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.mfa_factors
+    ADD CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: refresh_tokens refresh_tokens_session_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.refresh_tokens
+    ADD CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: saml_providers saml_providers_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_providers
+    ADD CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: saml_relay_states saml_relay_states_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.saml_relay_states
+    ADD CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sessions sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sessions
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: sso_domains sso_domains_sso_provider_id_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+--
+
+ALTER TABLE ONLY auth.sso_domains
+    ADD CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: profile profile_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.profile
+    ADD CONSTRAINT profile_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: service service_sub_ctgr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.service
+    ADD CONSTRAINT service_sub_ctgr_id_fkey FOREIGN KEY (sub_ctgr_id) REFERENCES public.sub_ctgr(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sub_ctgr sub_ctgr_ctgr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sub_ctgr
+    ADD CONSTRAINT sub_ctgr_ctgr_id_fkey FOREIGN KEY (ctgr_id) REFERENCES public.ctgr(id) ON DELETE SET NULL;
+
+
+--
+-- Name: sub_ctgr sub_ctgr_uom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sub_ctgr
+    ADD CONSTRAINT sub_ctgr_uom_id_fkey FOREIGN KEY (uom_id) REFERENCES public.uom(id) ON DELETE SET NULL;
+
+
+--
+-- Name: buckets buckets_owner_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.buckets
+    ADD CONSTRAINT buckets_owner_fkey FOREIGN KEY (owner) REFERENCES auth.users(id);
+
+
+--
+-- Name: objects objects_bucketId_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT "objects_bucketId_fkey" FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+
+
+--
+-- Name: objects objects_owner_fkey; Type: FK CONSTRAINT; Schema: storage; Owner: -
+--
+
+ALTER TABLE ONLY storage.objects
+    ADD CONSTRAINT objects_owner_fkey FOREIGN KEY (owner) REFERENCES auth.users(id);
+
+
+--
+-- Name: transaction_detail Enable insert access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable insert access for all users" ON public.transaction_detail FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: profile Enable read access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable read access for all users" ON public.profile FOR SELECT USING (true);
+
+
+--
+-- Name: transaction_detail Enable read access for all users; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Enable read access for all users" ON public.transaction_detail FOR SELECT USING (true);
+
+
+--
+-- Name: customer; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: handover; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.handover ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: laundry_item; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.laundry_item ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: payment; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.payment ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: profile; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.profile ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: subscription; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.subscription ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: subscription_policy; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.subscription_policy ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: transaction; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.transaction ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: transaction_detail; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.transaction_detail ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: buckets; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: migrations; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.migrations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: objects; Type: ROW SECURITY; Schema: storage; Owner: -
+--
+
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: supabase_realtime; Type: PUBLICATION; Schema: -; Owner: -
+--
+
+CREATE PUBLICATION supabase_realtime WITH (publish = 'insert, update, delete, truncate');
+
+
+--
+-- Name: issue_graphql_placeholder; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_graphql_placeholder ON sql_drop
+         WHEN TAG IN ('DROP EXTENSION')
+   EXECUTE FUNCTION extensions.set_graphql_placeholder();
+
+
+--
+-- Name: issue_pg_cron_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_pg_cron_access ON ddl_command_end
+         WHEN TAG IN ('CREATE SCHEMA')
+   EXECUTE FUNCTION extensions.grant_pg_cron_access();
+
+
+--
+-- Name: issue_pg_graphql_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_pg_graphql_access ON ddl_command_end
+         WHEN TAG IN ('CREATE FUNCTION')
+   EXECUTE FUNCTION extensions.grant_pg_graphql_access();
+
+
+--
+-- Name: issue_pg_net_access; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_net_access();
+
+
+--
+-- Name: pgrst_ddl_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER pgrst_ddl_watch ON ddl_command_end
+   EXECUTE FUNCTION extensions.pgrst_ddl_watch();
+
+
+--
+-- Name: pgrst_drop_watch; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
+   EXECUTE FUNCTION extensions.pgrst_drop_watch();
+
+
+--
+-- PostgreSQL database dump complete
+--
+

@@ -10,7 +10,7 @@ class GetServiceList {
 
   const GetServiceList({required ServiceRepo repo}) : _repo = repo;
 
-  Future<Either<Failure, List<Service>>> call({required String subCtgrId}) {
-    return _repo.getServiceList(subCtgrId: subCtgrId);
+  Future<Either<Failure, List<Service>>> call({required String subCtgrCode}) {
+    return _repo.getServiceList(subCtgrCode: subCtgrCode);
   }
 }

@@ -4,5 +4,5 @@ import 'package:dartz/dartz.dart';
 
 abstract class ServiceRepo {
   Future<Either<Failure, List<Service>>> getServiceList(
-      {required String subCtgrId});
+      {required String subCtgrCode});
 }

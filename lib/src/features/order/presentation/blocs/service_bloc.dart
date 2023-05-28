@@ -14,7 +14,7 @@ class ServiceBloc extends Bloc<ServiceEvent, ServiceState> {
     on<EvGetServiceList>((event, emit) async {
       emit(ServiceLoading());
 
-      final result = await _getServiceList(subCtgrId: event.subCtgrId);
+      final result = await _getServiceList(subCtgrCode: event.subCtgrCode);
 
       result.fold((l) {
         emit(ServiceFail(l));

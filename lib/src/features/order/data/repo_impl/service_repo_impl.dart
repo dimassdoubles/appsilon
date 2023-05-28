@@ -16,10 +16,10 @@ class ServiceRepoImpl implements ServiceRepo {
 
   @override
   Future<Either<Failure, List<Service>>> getServiceList(
-      {required String subCtgrId}) async {
+      {required String subCtgrCode}) async {
     try {
       log("getServiceList");
-      final result = await _remoteSource.getServiceList(subCtgrId: subCtgrId);
+      final result = await _remoteSource.getServiceList(subCtgrCode: subCtgrCode);
 
       return Right(result);
     } catch (e) {

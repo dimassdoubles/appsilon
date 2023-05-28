@@ -7,7 +7,7 @@ part of 'service.dart';
 // **************************************************************************
 
 _$_Service _$$_ServiceFromJson(Map<String, dynamic> json) => _$_Service(
-      id: json['id'] as String,
+      id: json['id'] as int,
       serviceCode: json['service_code'] as String,
       serviceName: json['service_name'] as String,
       version: json['version'] as int,
