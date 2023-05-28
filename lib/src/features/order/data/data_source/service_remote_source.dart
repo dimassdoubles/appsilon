@@ -17,9 +17,10 @@ class SupabaseServiceSource implements ServiceRemoteSource {
     log("getServiceList source");
     final data = await _supabase
         .from('service')
-        .select('*, sub_ctgr(sub_ctgr_code)')
+        .select('*, sub_ctgr!inner(sub_ctgr_code)')
         .eq('sub_ctgr.sub_ctgr_code', subCtgrCode);
 
+    log(subCtgrCode);
     log(data.toString());
 
     final listMap = List<Map<String, dynamic>>.from(data);
