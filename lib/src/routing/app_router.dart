@@ -1,5 +1,6 @@
 import 'package:appsilon/src/features/authentication/presentation/screens/settings_screen.dart';
 import 'package:appsilon/src/features/authentication/presentation/screens/sign_in_screen.dart';
+import 'package:appsilon/src/features/customer/presentation/screens/add_customer_screen.dart';
 import 'package:appsilon/src/features/order/presentation/screens/create_order_screen.dart';
 import 'package:appsilon/src/features/order/presentation/screens/home_screen.dart';
 import 'package:appsilon/src/features/report/presentation/screens/report_screen.dart';
@@ -25,5 +26,6 @@ class AppRouter extends _$AppRouter {
           ],
         ),
         AutoRoute(path: '/create-order', page: CreateOrderRoute.page),
+        AutoRoute(path: '/add-customer', page: AddCustomerRoute.page)
       ];
 }

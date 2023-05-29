@@ -105,6 +105,29 @@ class SettingsScreen extends StatelessWidget {
                 ).toList(),
               ),
             ),
+            const RegularSpace(),
+            Text(
+              'Customers',
+              style: AppText.semiBold16.copyWith(color: AppColor.grey),
+            ),
+            const MiniSpace(),
+            StyledContainer(
+              child: Column(
+                children: ListTile.divideTiles(
+                  context: context,
+                  tiles: [
+                    ListTile(
+                      title: Text('Daftar Customer'.hardcoded),
+                    ),
+                    ListTile(
+                      title: Text('Tambah Customer'.hardcoded),
+                      onTap: () =>
+                          context.router.push(const AddCustomerRoute()),
+                    ),
+                  ],
+                ).toList(),
+              ),
+            ),
           ],
         ),
       ),
