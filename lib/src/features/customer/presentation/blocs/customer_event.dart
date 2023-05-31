@@ -6,3 +6,9 @@ class EvAddCustomer extends CustomerEvent {
 
   EvAddCustomer({required this.name, required this.phone});
 }
+
+class EvGetCustomerList extends CustomerEvent {
+  final String? keyword;
+
+  EvGetCustomerList({this.keyword});
+}

@@ -11,6 +11,7 @@ class StyledTextFormField extends StatelessWidget {
   final String? labelText;
   final bool obscureText;
   final Widget? suffixIcon;
+  final Function(String)? onFieldSubmitted;
 
   const StyledTextFormField({
     super.key,
@@ -21,6 +22,7 @@ class StyledTextFormField extends StatelessWidget {
     this.labelText,
     this.obscureText = false,
     this.suffixIcon,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -49,6 +51,7 @@ class StyledTextFormField extends StatelessWidget {
       validator: validator,
       inputFormatters: inputFormatters,
       obscureText: obscureText,
+      onFieldSubmitted: onFieldSubmitted,
     );
   }
 }

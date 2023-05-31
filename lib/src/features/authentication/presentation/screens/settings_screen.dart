@@ -118,6 +118,8 @@ class SettingsScreen extends StatelessWidget {
                   tiles: [
                     ListTile(
                       title: Text('Daftar Customer'.hardcoded),
+                      onTap: () =>
+                          context.router.push(const CustomerListRoute()),
                     ),
                     ListTile(
                       title: Text('Tambah Customer'.hardcoded),
