@@ -5,8 +5,11 @@ import 'package:appsilon/src/features/order/presentation/blocs/service_state.dar
 import 'package:appsilon/src/features/order/presentation/widgets/drop_down_parfume.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/input_kiloan.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/input_satuan.dart';
-import 'package:appsilon/src/shared/widgets/space/medium_space.dart';
-import 'package:appsilon/src/shared/widgets/space/regular_space.dart';
+import 'package:appsilon/src/features/order/presentation/widgets/submit_order_button.dart';
+import 'package:appsilon/src/routing/app_router.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/end_space.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/medium_space.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:appsilon/src/themes/app_text.dart';
@@ -38,6 +41,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       appBar: AppBar(
         title: const Text('Create Order'),
       ),
+      extendBody: true,
+      bottomNavigationBar: const SubmitOrderButton(),
       body: BlocConsumer(
         listener: (context, state) {
           if (state is ServiceLoading) {
@@ -54,53 +59,66 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             return Padding(
               padding: const EdgeInsets.symmetric(
                   horizontal: AppSize.paddingRegular),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pelanggan',
-                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
-                    ),
-                    const RegularSpace(),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppSize.paddingRegular + 4),
-                      decoration: BoxDecoration(
-                        borderRadius:
-                            BorderRadius.circular(AppSize.borderRadiusRegular),
-                        color: AppColor.grey.withAlpha(100),
-                        border: Border.all(color: AppColor.grey),
+              child: SingleChildScrollView(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pelanggan',
+                        style:
+                            AppText.semiBold16.copyWith(color: AppColor.grey),
                       ),
-                      child: Center(
-                        child: Text(
-                          'Tambah Pelanggan',
-                          style:
-                              AppText.semiBold16.copyWith(color: AppColor.grey),
+                      const RegularSpace(),
+                      GestureDetector(
+                        onTap: () {
+                          context.router.push(const SelectCustomerRoute());
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding:
+                              const EdgeInsets.all(AppSize.paddingRegular + 4),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                                AppSize.borderRadiusRegular),
+                            color: AppColor.grey.withAlpha(100),
+                            border: Border.all(color: AppColor.grey),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Pilih Pelanggan',
+                              style: AppText.semiBold16
+                                  .copyWith(color: AppColor.grey),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    const MediumSpace(),
-                    Text(
-                      'Parfum',
-                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
-                    ),
-                    const RegularSpace(),
-                    const DropDownParfume(),
-                    const MediumSpace(),
-                    Text(
-                      'Kiloan',
-                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
-                    ),
-                    const RegularSpace(),
-                    const InputKiloan(),
-                    const MediumSpace(),
-                    Text(
-                      'Satuan',
-                      style: AppText.semiBold16.copyWith(color: AppColor.grey),
-                    ),
-                    const RegularSpace(),
-                    const InputSatuan(),
-                  ]),
+                      const MediumSpace(),
+                      Text(
+                        'Parfum',
+                        style:
+                            AppText.semiBold16.copyWith(color: AppColor.grey),
+                      ),
+                      const RegularSpace(),
+                      const DropDownParfume(),
+                      const MediumSpace(),
+                      Text(
+                        'Kiloan',
+                        style:
+                            AppText.semiBold16.copyWith(color: AppColor.grey),
+                      ),
+                      const RegularSpace(),
+                      const InputKiloan(),
+                      const MediumSpace(),
+                      Text(
+                        'Satuan',
+                        style:
+                            AppText.semiBold16.copyWith(color: AppColor.grey),
+                      ),
+                      const RegularSpace(),
+                      const InputSatuan(),
+                      const EndSpace(),
+                    ]),
+              ),
             );
           }
           return const SizedBox();

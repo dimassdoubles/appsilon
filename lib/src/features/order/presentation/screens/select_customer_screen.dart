@@ -2,9 +2,11 @@ import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/features/customer/presentation/blocs/customer_bloc.dart';
 import 'package:appsilon/src/features/customer/presentation/blocs/customer_event.dart';
 import 'package:appsilon/src/features/customer/presentation/blocs/customer_state.dart';
-import 'package:appsilon/src/features/customer/presentation/widgets/customer_card_with_edit_button.dart';
+import 'package:appsilon/src/features/order/presentation/widgets/select_customer_card.dart';
+import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_text_form_field.dart';
+import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -13,14 +15,14 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_svg/svg.dart';
 
 @RoutePage()
-class CustomerListScreen extends StatefulWidget {
-  const CustomerListScreen({super.key});
+class SelectCustomerScreen extends StatefulWidget {
+  const SelectCustomerScreen({super.key});
 
   @override
-  State<CustomerListScreen> createState() => _CustomerListScreenState();
+  State<SelectCustomerScreen> createState() => _SelectCustomerScreenState();
 }
 
-class _CustomerListScreenState extends State<CustomerListScreen> {
+class _SelectCustomerScreenState extends State<SelectCustomerScreen> {
   final CustomerBloc _customerBloc = getIt.get<CustomerBloc>();
 
   final TextEditingController _keywordCtrl = TextEditingController();
@@ -43,6 +45,13 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Customer List')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.router.push(const AddCustomerRoute());
+        },
+        backgroundColor: AppColor.lightBlue,
+        child: const Icon(Icons.add),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(AppSize.paddingRegular),
         child: Column(
@@ -80,8 +89,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                       if (state is SuccessGetCustomerList) {
                         return Column(
                           children: state.listCustomer
-                              .map((e) =>
-                                  CustomerCardWithEditButton(customer: e))
+                              .map((e) => SelectCustomerCard(customer: e))
                               .toList(),
                         );
                       }

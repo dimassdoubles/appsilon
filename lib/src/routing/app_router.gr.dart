@@ -47,12 +47,6 @@ abstract class _$AppRouter extends RootStackRouter {
         child: const SignInScreen(),
       );
     },
-    NavigationRoute.name: (routeData) {
-      return AutoRoutePage<dynamic>(
-        routeData: routeData,
-        child: const NavigationScreen(),
-      );
-    },
     CreateOrderRoute.name: (routeData) {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
@@ -69,6 +63,30 @@ abstract class _$AppRouter extends RootStackRouter {
       return AutoRoutePage<dynamic>(
         routeData: routeData,
         child: const CustomerListScreen(),
+      );
+    },
+    SelectCustomerRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const SelectCustomerScreen(),
+      );
+    },
+    NavigationRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const NavigationScreen(),
+      );
+    },
+    ConfirmationOrderRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const ConfirmationOrderScreen(),
+      );
+    },
+    PaymentRoute.name: (routeData) {
+      return AutoRoutePage<dynamic>(
+        routeData: routeData,
+        child: const PaymentScreen(),
       );
     },
   };
@@ -160,20 +178,6 @@ class SignInRoute extends PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [NavigationScreen]
-class NavigationRoute extends PageRouteInfo<void> {
-  const NavigationRoute({List<PageRouteInfo>? children})
-      : super(
-          NavigationRoute.name,
-          initialChildren: children,
-        );
-
-  static const String name = 'NavigationRoute';
-
-  static const PageInfo<void> page = PageInfo<void>(name);
-}
-
-/// generated route for
 /// [CreateOrderScreen]
 class CreateOrderRoute extends PageRouteInfo<void> {
   const CreateOrderRoute({List<PageRouteInfo>? children})
@@ -211,6 +215,62 @@ class CustomerListRoute extends PageRouteInfo<void> {
         );
 
   static const String name = 'CustomerListRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [SelectCustomerScreen]
+class SelectCustomerRoute extends PageRouteInfo<void> {
+  const SelectCustomerRoute({List<PageRouteInfo>? children})
+      : super(
+          SelectCustomerRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'SelectCustomerRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [NavigationScreen]
+class NavigationRoute extends PageRouteInfo<void> {
+  const NavigationRoute({List<PageRouteInfo>? children})
+      : super(
+          NavigationRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'NavigationRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [ConfirmationOrderScreen]
+class ConfirmationOrderRoute extends PageRouteInfo<void> {
+  const ConfirmationOrderRoute({List<PageRouteInfo>? children})
+      : super(
+          ConfirmationOrderRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'ConfirmationOrderRoute';
+
+  static const PageInfo<void> page = PageInfo<void>(name);
+}
+
+/// generated route for
+/// [PaymentScreen]
+class PaymentRoute extends PageRouteInfo<void> {
+  const PaymentRoute({List<PageRouteInfo>? children})
+      : super(
+          PaymentRoute.name,
+          initialChildren: children,
+        );
+
+  static const String name = 'PaymentRoute';
 
   static const PageInfo<void> page = PageInfo<void>(name);
 }

@@ -1,5 +1,5 @@
-import 'package:appsilon/src/shared/widgets/space/mini_space.dart';
-import 'package:appsilon/src/shared/widgets/styled_container.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/mini_space.dart';
+import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:appsilon/src/themes/app_text.dart';

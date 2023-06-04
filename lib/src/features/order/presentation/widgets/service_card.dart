@@ -1,4 +1,4 @@
-import 'package:appsilon/src/shared/widgets/styled_container.dart';
+import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:appsilon/src/themes/app_text.dart';
 import 'package:flutter/material.dart';
 

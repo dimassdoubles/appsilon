@@ -4,9 +4,9 @@ import 'dart:developer';
 
 import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/routing/app_router.dart';
-import 'package:appsilon/src/shared/widgets/space/medium_space.dart';
-import 'package:appsilon/src/shared/widgets/space/regular_space.dart';
-import 'package:appsilon/src/shared/widgets/styled_text_form_field.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/medium_space.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
+import 'package:appsilon/src/shared/presentation/widgets/styled_text_form_field.dart';
 import 'package:appsilon/src/constants/app_constants.dart';
 import 'package:appsilon/src/features/authentication/presentation/blocs/auth_bloc.dart'
     as my;

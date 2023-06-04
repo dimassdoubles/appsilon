@@ -5,7 +5,7 @@ import 'package:appsilon/src/features/order/presentation/blocs/service_bloc.dart
 import 'package:appsilon/src/features/order/presentation/blocs/service_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_state.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/order_satuan_item.dart';
-import 'package:appsilon/src/shared/widgets/styled_container.dart';
+import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

@@ -3,7 +3,7 @@ import 'package:appsilon/src/features/order/domain/models/parfume.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_bloc.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_state.dart';
-import 'package:appsilon/src/shared/widgets/styled_container.dart';
+import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
