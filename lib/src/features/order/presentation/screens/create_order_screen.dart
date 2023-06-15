@@ -1,8 +1,11 @@
 import 'package:appsilon/injection.dart';
+import 'package:appsilon/src/features/order/domain/models/service_order.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_bloc.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_state.dart';
+import 'package:appsilon/src/features/order/presentation/cubits/service_order_cubit.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/drop_down_parfume.dart';
+import 'package:appsilon/src/features/order/presentation/widgets/input_customer.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/input_kiloan.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/input_satuan.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/submit_order_button.dart';
@@ -28,9 +31,11 @@ class CreateOrderScreen extends StatefulWidget {
 
 class _CreateOrderScreenState extends State<CreateOrderScreen> {
   final _serviceBloc = getIt.get<ServiceBloc>();
+  final _serviceOrderCubit = getIt.get<ServiceOrderCubit>();
 
   @override
   void initState() {
+    _serviceOrderCubit.createOrder();
     _serviceBloc.add(EvGetServiceList('743d4e2d-7608-40d4-b712-193cbbc08fbd'));
     super.initState();
   }
@@ -69,29 +74,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                             AppText.semiBold16.copyWith(color: AppColor.grey),
                       ),
                       const RegularSpace(),
-                      GestureDetector(
-                        onTap: () {
-                          context.router.push(const SelectCustomerRoute());
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding:
-                              const EdgeInsets.all(AppSize.paddingRegular + 4),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(
-                                AppSize.borderRadiusRegular),
-                            color: AppColor.grey.withAlpha(100),
-                            border: Border.all(color: AppColor.grey),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'Pilih Pelanggan',
-                              style: AppText.semiBold16
-                                  .copyWith(color: AppColor.grey),
-                            ),
-                          ),
-                        ),
-                      ),
+                      const InputCustomer(),
                       const MediumSpace(),
                       Text(
                         'Parfum',

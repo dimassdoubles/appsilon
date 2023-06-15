@@ -6,6 +6,7 @@ import 'package:appsilon/src/features/order/domain/models/service.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_bloc.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/service_state.dart';
+import 'package:appsilon/src/features/order/presentation/cubits/service_order_cubit.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/mini_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
@@ -30,6 +31,7 @@ class _InputKiloanState extends State<InputKiloan> {
   int _qty = 0;
 
   final ServiceBloc _serviceBloc = getIt.get<ServiceBloc>();
+  final _serviceOrderCubit = getIt.get<ServiceOrderCubit>();
 
   Service? _selected;
   List<Service> _serviceList = [];
@@ -60,17 +62,33 @@ class _InputKiloanState extends State<InputKiloan> {
                 value: _selected,
                 style: AppText.semiBold16.copyWith(color: AppColor.black),
                 underline: const SizedBox(),
-                items: _serviceList
-                    .map((e) => DropdownMenuItem(
-                        value: e,
-                        child: Text(
-                          e.serviceName,
-                          style: AppText.semiBold16
-                              .copyWith(color: AppColor.black),
-                        )))
-                    .toList(),
+                items: [
+                  DropdownMenuItem(
+                      value: null,
+                      child: Text(
+                        "Pilih Layanan",
+                        style:
+                            AppText.semiBold16.copyWith(color: AppColor.black),
+                      )),
+                  ..._serviceList.map((e) => DropdownMenuItem(
+                      value: e,
+                      child: Text(
+                        e.serviceName,
+                        style:
+                            AppText.semiBold16.copyWith(color: AppColor.black),
+                      )))
+                ],
                 onChanged: (value) {
                   setState(() {
+                    if (value == null) {
+                      _qty = 0;
+                    } else {
+                      _serviceOrderCubit.setService(value, _qty);
+                    }
+
+                    if (_selected != null) {
+                      _serviceOrderCubit.setService(_selected!, 0);
+                    }
                     _selected = value;
                   });
                 },
@@ -79,7 +97,9 @@ class _InputKiloanState extends State<InputKiloan> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("${Utils.formatToIdr(_selected?.price)} / kg"),
+                  Text(Utils.formatToIdr(_selected?.price) != ""
+                      ? "${Utils.formatToIdr(_selected?.price)}/ kg"
+                      : "Rp -"),
                   Row(
                     children: [
                       Container(
@@ -92,8 +112,10 @@ class _InputKiloanState extends State<InputKiloan> {
                             IconButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (_qty > 0) {
+                                    if (_qty > 0 && _selected != null) {
                                       _qty -= 1;
+                                      _serviceOrderCubit.setService(
+                                          _selected!, _qty);
                                     }
                                   });
                                 },
@@ -105,7 +127,11 @@ class _InputKiloanState extends State<InputKiloan> {
                             IconButton(
                                 onPressed: () {
                                   setState(() {
-                                    _qty += 1;
+                                    if (_selected != null) {
+                                      _qty += 1;
+                                      _serviceOrderCubit.setService(
+                                          _selected!, _qty);
+                                    }
                                   });
                                 },
                                 icon: SvgPicture.asset('assets/icons/plus.svg'))

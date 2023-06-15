@@ -4,6 +4,8 @@ import 'package:appsilon/src/features/order/presentation/blocs/parfume_bloc.dart
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_state.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
+import 'package:appsilon/src/themes/app_color.dart';
+import 'package:appsilon/src/themes/app_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -22,9 +24,12 @@ class _DropDownParfumeState extends State<DropDownParfume> {
   final ParfumeBloc _parfumeBloc = getIt.get<ParfumeBloc>();
 
   List<DropdownMenuItem<Parfume>> _items = [
-    const DropdownMenuItem(
+    DropdownMenuItem(
       value: null,
-      child: Text(''),
+      child: Text(
+        'Pilih Parfum',
+        style: AppText.semiBold16.copyWith(color: AppColor.black),
+      ),
     )
   ];
 
@@ -41,14 +46,17 @@ class _DropDownParfumeState extends State<DropDownParfume> {
           listener: (context, state) {
             if (state is SuccessGetParfumeList) {
               setState(() {
-                _items = state.parfumeList
-                    .map((e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(
-                            e.parfumeName,
-                          ),
-                        ))
-                    .toList();
+                _items = [
+                  ..._items,
+                  ...state.parfumeList.map((e) => DropdownMenuItem(
+                        value: e,
+                        child: Text(
+                          e.parfumeName,
+                          style: AppText.semiBold16
+                              .copyWith(color: AppColor.black),
+                        ),
+                      ))
+                ];
               });
             }
           },

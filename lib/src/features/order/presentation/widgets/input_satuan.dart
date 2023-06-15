@@ -43,8 +43,12 @@ class _InputSatuanState extends State<InputSatuan> {
       child: StyledContainer(
         width: double.infinity,
         child: Column(
-          children:
-              _serviceList.map((e) => OrderSatuanItem(service: e)).toList(),
+          children: ListTile.divideTiles(
+                  context: context,
+                  tiles: _serviceList
+                      .map((e) => OrderSatuanItem(service: e))
+                      .toList())
+              .toList(),
         ),
       ),
     );
