@@ -3,6 +3,7 @@ import 'package:appsilon/src/features/order/domain/models/parfume.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_bloc.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_event.dart';
 import 'package:appsilon/src/features/order/presentation/blocs/parfume_state.dart';
+import 'package:appsilon/src/features/order/presentation/cubits/service_order_cubit.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_text.dart';
@@ -22,6 +23,7 @@ class _DropDownParfumeState extends State<DropDownParfume> {
   Parfume? _value;
 
   final ParfumeBloc _parfumeBloc = getIt.get<ParfumeBloc>();
+  final _serviceOrderCubit = getIt.get<ServiceOrderCubit>();
 
   List<DropdownMenuItem<Parfume>> _items = [
     DropdownMenuItem(
@@ -67,6 +69,7 @@ class _DropDownParfumeState extends State<DropDownParfume> {
                   setState(() {
                     _value = value!;
                   });
+                  _serviceOrderCubit.setParfume(value);
                 },
                 onTap: () {
                   if (_parfumeBloc.state is! SuccessGetParfumeList) {

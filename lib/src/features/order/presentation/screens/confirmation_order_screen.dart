@@ -1,16 +1,48 @@
+import 'package:appsilon/injection.dart';
+import 'package:appsilon/src/features/order/domain/models/service.dart';
+import 'package:appsilon/src/features/order/presentation/cubits/service_order_cubit.dart';
 import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/mini_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:appsilon/src/themes/app_size.dart';
+import 'package:appsilon/src/utils/utils.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:flutter/src/widgets/placeholder.dart';
 
 @RoutePage()
-class ConfirmationOrderScreen extends StatelessWidget {
+class ConfirmationOrderScreen extends StatefulWidget {
   const ConfirmationOrderScreen({super.key});
+
+  @override
+  State<ConfirmationOrderScreen> createState() =>
+      _ConfirmationOrderScreenState();
+}
+
+class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
+  final _serviceOrderCubit = getIt.get<ServiceOrderCubit>();
+
+  late final List<Widget> _orderItems;
+
+  late int _total;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final services = _serviceOrderCubit.state!.services;
+    final keys = services.keys;
+
+    _orderItems = keys
+        .map((e) => DetailOrderItem(service: e, qty: services[e]!))
+        .toList();
+
+    _total = 0;
+
+    for (var key in keys) {
+      _total += services[key]! * key.price;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,48 +54,20 @@ class ConfirmationOrderScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Order Detail'),
+              const Text('Detail Pesanan'),
               const MiniSpace(),
-              StyledContainer(
-                width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ...ListTile.divideTiles(context: context, tiles: [
-                      Padding(
-                        padding: const EdgeInsets.only(
-                            bottom: AppSize.paddingRegular),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text('Laundry Express'),
-                                Text('2 Kg x 15.000')
-                              ],
-                            ),
-                            const Text('30.000')
-                          ],
-                        ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text('Laundry Express'),
-                              Text('2 Kg x 15.000')
-                            ],
-                          ),
-                          const Text('30.000')
-                        ],
-                      )
-                    ]).toList(),
-                  ],
+              if (_orderItems.isNotEmpty)
+                StyledContainer(
+                  width: double.infinity,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ...ListTile.divideTiles(
+                              context: context, tiles: _orderItems)
+                          .toList(),
+                    ],
+                  ),
                 ),
-              ),
               const RegularSpace(),
               StyledContainer(
                 width: double.infinity,
@@ -72,23 +76,34 @@ class ConfirmationOrderScreen extends StatelessWidget {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Text("Transaction Id"), Text("-")],
+                      children: const [Text("Transaction Id"), Text("-")],
+                    ),
+                    const MiniSpace(
+                      orientation: Orientation.portrait,
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Text("Date"), Text('05 Juni 2023')],
+                      children: const [Text("Date"), Text('05 Juni 2023')],
+                    ),
+                    const MiniSpace(
+                      orientation: Orientation.portrait,
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Parfume"),
-                        Text("Onix"),
+                        const Text("Parfume"),
+                        Text(_serviceOrderCubit.state!.parfume != null
+                            ? _serviceOrderCubit.state!.parfume!.parfumeName
+                            : "-"),
                       ],
                     ),
-                    Divider(),
+                    const Divider(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [Text("Total"), Text("50.000")],
+                      children: [
+                        const Text("Total"),
+                        Text(Utils.formatToIdr(_total))
+                      ],
                     )
                   ],
                 ),
@@ -96,5 +111,36 @@ class ConfirmationOrderScreen extends StatelessWidget {
             ],
           ),
         ));
+  }
+}
+
+class DetailOrderItem extends StatelessWidget {
+  final Service _service;
+  final int _qty;
+  const DetailOrderItem({
+    super.key,
+    required Service service,
+    required int qty,
+  })  : _service = service,
+        _qty = qty;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSize.paddingMini),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(_service.serviceName),
+              Text('$_qty Kg x ${Utils.formatToIdr(_service.price)}')
+            ],
+          ),
+          Text(Utils.formatToIdr(_service.price * _qty))
+        ],
+      ),
+    );
   }
 }
