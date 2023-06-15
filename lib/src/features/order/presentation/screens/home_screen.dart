@@ -87,7 +87,7 @@ class HomeScreen extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
             child: Text(
-              'Service',
+              'Layanan',
               style: AppText.semiBold16.copyWith(color: AppColor.grey),
             ),
           ),
@@ -136,7 +136,7 @@ class HomeScreen extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
             child: Text(
-              'Transaction Today',
+              'Transaksi Hari Ini',
               style: AppText.semiBold16.copyWith(color: AppColor.grey),
             ),
           ),
