@@ -22,25 +22,76 @@ class ConfirmationOrderScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Payments'),
-              MiniSpace(),
-              Row(
-                children: [
-                  StyledContainer(
-                    child: Text('Cash'),
-                  ),
-                  const RegularSpace(
-                    orientation: Orientation.landscape,
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      context.router.push(const PaymentRoute());
-                    },
-                    child: StyledContainer(
-                      child: Text('Cashless'),
+              const Text('Order Detail'),
+              const MiniSpace(),
+              StyledContainer(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ...ListTile.divideTiles(context: context, tiles: [
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: AppSize.paddingRegular),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text('Laundry Express'),
+                                Text('2 Kg x 15.000')
+                              ],
+                            ),
+                            const Text('30.000')
+                          ],
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('Laundry Express'),
+                              Text('2 Kg x 15.000')
+                            ],
+                          ),
+                          const Text('30.000')
+                        ],
+                      )
+                    ]).toList(),
+                  ],
+                ),
+              ),
+              const RegularSpace(),
+              StyledContainer(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [Text("Transaction Id"), Text("-")],
                     ),
-                  )
-                ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [Text("Date"), Text('05 Juni 2023')],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("Parfume"),
+                        Text("Onix"),
+                      ],
+                    ),
+                    Divider(),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [Text("Total"), Text("50.000")],
+                    )
+                  ],
+                ),
               )
             ],
           ),

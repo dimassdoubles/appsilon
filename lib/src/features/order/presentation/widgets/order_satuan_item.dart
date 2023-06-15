@@ -4,6 +4,7 @@ import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dar
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:appsilon/src/themes/app_text.dart';
+import 'package:appsilon/src/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -29,7 +30,7 @@ class _OrderSatuanItemState extends State<OrderSatuanItem> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("Rp ${widget.service.price} / kg"),
+            Text("${Utils.formatToIdr(widget.service.price)} / kg"),
             Row(
               children: [
                 Container(

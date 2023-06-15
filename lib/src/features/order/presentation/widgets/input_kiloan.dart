@@ -12,6 +12,7 @@ import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:appsilon/src/themes/app_text.dart';
+import 'package:appsilon/src/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
@@ -78,7 +79,7 @@ class _InputKiloanState extends State<InputKiloan> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Rp ${_selected?.price ?? '-'} / kg"),
+                  Text("${Utils.formatToIdr(_selected?.price)} / kg"),
                   Row(
                     children: [
                       Container(

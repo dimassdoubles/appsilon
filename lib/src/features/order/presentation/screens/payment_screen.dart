@@ -1,3 +1,4 @@
+import 'package:appsilon/src/features/order/presentation/widgets/cashless_payment.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/widgets/framework.dart';
@@ -10,10 +11,9 @@ class PaymentScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Payment')),
-      body: Center(
-        child: Text('Hello World!'),
-      ),
-    );
+        appBar: AppBar(title: Text('Payment')),
+        body: Column(
+          children: [],
+        ));
   }
 }
