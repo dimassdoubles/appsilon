@@ -4,6 +4,7 @@ import 'package:appsilon/src/features/customer/presentation/blocs/customer_event
 import 'package:appsilon/src/features/customer/presentation/blocs/customer_state.dart';
 import 'package:appsilon/src/features/order/presentation/widgets/select_customer_card.dart';
 import 'package:appsilon/src/routing/app_router.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/end_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_text_form_field.dart';
 import 'package:appsilon/src/themes/app_color.dart';
@@ -52,11 +53,12 @@ class _SelectCustomerScreenState extends State<SelectCustomerScreen> {
         backgroundColor: AppColor.lightBlue,
         child: const Icon(Icons.add),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(AppSize.paddingRegular),
-        child: Column(
-          children: [
-            StyledTextFormField(
+      body: Column(
+        children: [
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
+            child: StyledTextFormField(
               controller: _keywordCtrl,
               onFieldSubmitted: (value) {
                 _customerBloc.add(EvGetCustomerList(keyword: value));
@@ -71,34 +73,36 @@ class _SelectCustomerScreenState extends State<SelectCustomerScreen> {
                     icon: SvgPicture.asset('assets/icons/search.svg')),
               ),
             ),
-            const RegularSpace(),
-            Expanded(
-              child: SingleChildScrollView(
-                child: BlocConsumer(
-                    bloc: _customerBloc,
-                    listener: (context, state) {
-                      if (state is CustomerLoading) {
-                        EasyLoading.show();
-                      } else if (state is CustomerFail) {
-                        EasyLoading.showError(state.failure.message);
-                      } else if (state is SuccessGetCustomerList) {
-                        EasyLoading.dismiss();
-                      }
-                    },
-                    builder: (context, state) {
-                      if (state is SuccessGetCustomerList) {
-                        return Column(
-                          children: state.listCustomer
-                              .map((e) => SelectCustomerCard(customer: e))
-                              .toList(),
-                        );
-                      }
-                      return const SizedBox();
-                    }),
-              ),
+          ),
+          const RegularSpace(),
+          Expanded(
+            child: SingleChildScrollView(
+              child: BlocConsumer(
+                  bloc: _customerBloc,
+                  listener: (context, state) {
+                    if (state is CustomerLoading) {
+                      EasyLoading.show();
+                    } else if (state is CustomerFail) {
+                      EasyLoading.showError(state.failure.message);
+                    } else if (state is SuccessGetCustomerList) {
+                      EasyLoading.dismiss();
+                    }
+                  },
+                  builder: (context, state) {
+                    if (state is SuccessGetCustomerList) {
+                      return Column(
+                        children: [
+                          ...state.listCustomer
+                              .map((e) => SelectCustomerCard(customer: e)),
+                          const EndSpace()
+                        ],
+                      );
+                    }
+                    return const SizedBox();
+                  }),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

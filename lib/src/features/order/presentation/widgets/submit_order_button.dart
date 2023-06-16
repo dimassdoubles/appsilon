@@ -50,7 +50,9 @@ class _SubmitOrderButtonState extends State<SubmitOrderButton> {
               }),
           ElevatedButton(
             onPressed: () {
-              context.router.push(const ConfirmationOrderRoute());
+              if (_serviceOrderCubit.state!.services.keys.isNotEmpty) {
+                context.router.push(const ConfirmationOrderRoute());
+              }
             },
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(

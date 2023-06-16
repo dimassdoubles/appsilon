@@ -21,6 +21,52 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
     emit(ServiceOrder(services: {}));
   }
 
+  void setPaymentAmount(int paymentAmount) {
+    state!.paymentAmount = paymentAmount;
+
+    final services = state!.services;
+    final keys = services.keys;
+
+    int total = 0;
+
+    for (var key in keys) {
+      total += services[key]! * key.price;
+    }
+
+    if (paymentAmount == 0) {
+      state!.paymentAmount = null;
+      state!.returnAmount = null;
+    } else {
+      state!.paymentAmount = paymentAmount;
+      state!.returnAmount = paymentAmount - total;
+    }
+
+    final newState = ServiceOrder(
+        services: state!.services,
+        customer: state!.customer,
+        note: state!.note,
+        parfume: state!.parfume,
+        paymentAmount: state!.paymentAmount,
+        paymentMethod: state!.paymentMethod,
+        returnAmount: state!.returnAmount);
+    emit(newState);
+  }
+
+  void setPaymentMethod(PaymentMethod? paymentMethod) {
+    state!.paymentMethod = paymentMethod;
+    log(state!.customer.toString());
+
+    final newState = ServiceOrder(
+        services: state!.services,
+        customer: state!.customer,
+        note: state!.note,
+        parfume: state!.parfume,
+        paymentAmount: state!.paymentAmount,
+        paymentMethod: state!.paymentMethod,
+        returnAmount: state!.returnAmount);
+    emit(newState);
+  }
+
   void setCustomer(Customer? customer) {
     if (state == null) {
       createOrder();
@@ -28,11 +74,13 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
     state!.customer = customer;
     log(state!.customer.toString());
     final newState = ServiceOrder(
-      services: state!.services,
-      customer: state!.customer,
-      note: state!.note,
-      parfume: state!.parfume,
-    );
+        services: state!.services,
+        customer: state!.customer,
+        note: state!.note,
+        parfume: state!.parfume,
+        paymentAmount: state!.paymentAmount,
+        paymentMethod: state!.paymentMethod,
+        returnAmount: state!.returnAmount);
     emit(newState);
   }
 
@@ -43,11 +91,13 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
     state!.parfume = parfume;
 
     final newState = ServiceOrder(
-      services: state!.services,
-      customer: state!.customer,
-      note: state!.note,
-      parfume: state!.parfume,
-    );
+        services: state!.services,
+        customer: state!.customer,
+        note: state!.note,
+        parfume: state!.parfume,
+        paymentAmount: state!.paymentAmount,
+        paymentMethod: state!.paymentMethod,
+        returnAmount: state!.returnAmount);
     emit(newState);
   }
 
@@ -62,11 +112,13 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
     }
 
     final newState = ServiceOrder(
-      services: state!.services,
-      customer: state!.customer,
-      note: state!.note,
-      parfume: state!.parfume,
-    );
+        services: state!.services,
+        customer: state!.customer,
+        note: state!.note,
+        parfume: state!.parfume,
+        paymentAmount: state!.paymentAmount,
+        paymentMethod: state!.paymentMethod,
+        returnAmount: state!.returnAmount);
     emit(newState);
   }
 }

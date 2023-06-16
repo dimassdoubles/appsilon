@@ -6,7 +6,6 @@ import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/end_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/mini_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
-import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:appsilon/src/themes/app_text.dart';
@@ -26,63 +25,6 @@ class HomeScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
-            child: StyledContainer(
-              color: AppColor.lightBlue,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppSize.paddingRegular,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          '2',
-                          style:
-                              AppText.semiBold20.copyWith(color: Colors.white),
-                        ),
-                        const Text(
-                          'Masuk',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          '10',
-                          style:
-                              AppText.semiBold20.copyWith(color: Colors.white),
-                        ),
-                        const Text(
-                          'Harus Selesai',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          '3',
-                          style:
-                              AppText.semiBold20.copyWith(color: Colors.white),
-                        ),
-                        const Text(
-                          'Telat',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const RegularSpace(),
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),

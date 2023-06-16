@@ -18,7 +18,10 @@ class SelectCustomerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSize.paddingMini),
+      padding: const EdgeInsets.only(
+          bottom: AppSize.paddingMini,
+          right: AppSize.paddingRegular,
+          left: AppSize.paddingRegular),
       child: GestureDetector(
         onTap: () {
           final serviceOrderCubit = getIt.get<ServiceOrderCubit>();
@@ -27,18 +30,21 @@ class SelectCustomerCard extends StatelessWidget {
         },
         child: StyledContainer(
           width: double.infinity,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _customer.customerName,
-                style: AppText.medium16,
-              ),
-              Text(
-                _customer.phone,
-                style: const TextStyle(color: AppColor.grey),
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _customer.customerName,
+                  style: AppText.medium16,
+                ),
+                Text(
+                  _customer.phone,
+                  style: const TextStyle(color: AppColor.grey),
+                ),
+              ],
+            ),
           ),
         ),
       ),

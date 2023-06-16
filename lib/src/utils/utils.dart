@@ -17,6 +17,8 @@ class Utils {
     // Format the numeric value as IDR currency
     String formattedAmount = currencyFormat.format(amount);
 
+    formattedAmount = formattedAmount.replaceAll(",00", "");
+
     return formattedAmount;
   }
 

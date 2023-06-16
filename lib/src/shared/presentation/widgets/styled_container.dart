@@ -4,15 +4,22 @@ import 'package:flutter/material.dart';
 
 class StyledContainer extends StatelessWidget {
   const StyledContainer(
-      {super.key, Widget? child, double? width, double? height, Color? color})
+      {super.key,
+      Widget? child,
+      double? width,
+      double? height,
+      Color? color,
+      bool border = false})
       : _child = child,
         _width = width,
         _height = height,
-        _color = color;
+        _color = color,
+        _border = border;
 
   final Color? _color;
   final double? _width, _height;
   final Widget? _child;
+  final bool _border;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +32,8 @@ class StyledContainer extends StatelessWidget {
           borderRadius: BorderRadius.circular(
             AppSize.borderRadiusRegular,
           ),
+          border:
+              _border ? Border.all(color: AppColor.lightBlue, width: 2) : null,
           boxShadow: [
             BoxShadow(
               blurRadius: 26,
