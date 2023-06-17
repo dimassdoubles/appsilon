@@ -50,6 +50,7 @@ dependencies:
   json_annotation: ^4.8.1
   webview_flutter: ^4.2.1
   intl: ^0.18.1
+  slide_action: ^0.0.2
 
 dev_dependencies:
   flutter_test:

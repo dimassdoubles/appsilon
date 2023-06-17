@@ -2,6 +2,7 @@ import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/features/order/domain/models/service.dart';
 import 'package:appsilon/src/features/order/domain/models/service_order.dart';
 import 'package:appsilon/src/features/order/presentation/cubits/service_order_cubit.dart';
+import 'package:appsilon/src/features/order/presentation/widgets/process_order_button.dart';
 import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/end_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/medium_space.dart';
@@ -15,6 +16,7 @@ import 'package:appsilon/src/utils/utils.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:slide_action/slide_action.dart';
 
 @RoutePage()
 class ConfirmationOrderScreen extends StatefulWidget {
@@ -59,6 +61,11 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: const Text('Confirmation Order')),
+        extendBody: true,
+        bottomNavigationBar: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSize.paddingMedium),
+          child: ProccessOrderButton(),
+        ),
         body: Padding(
           padding:
               const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
