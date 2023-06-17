@@ -48,7 +48,7 @@ class NavigationScreen extends StatelessWidget {
               )
             ],
             marginR: const EdgeInsets.symmetric(
-                horizontal: AppSize.paddingMedium,
+                horizontal: AppSize.paddingRegular,
                 vertical: AppSize.paddingMini),
             paddingR: const EdgeInsets.symmetric(
                 horizontal: AppSize.paddingRegular,

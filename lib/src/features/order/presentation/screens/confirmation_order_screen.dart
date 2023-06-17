@@ -63,7 +63,7 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
         appBar: AppBar(title: const Text('Confirmation Order')),
         extendBody: true,
         bottomNavigationBar: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: AppSize.paddingMedium),
+          padding: EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
           child: ProccessOrderButton(),
         ),
         body: Padding(

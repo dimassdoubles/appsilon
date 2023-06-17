@@ -25,7 +25,8 @@ class _SubmitOrderButtonState extends State<SubmitOrderButton> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(AppSize.paddingMedium),
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSize.paddingMedium, horizontal: AppSize.paddingRegular),
       child: Container(
         padding: const EdgeInsets.all(AppSize.paddingRegular),
         decoration: BoxDecoration(
