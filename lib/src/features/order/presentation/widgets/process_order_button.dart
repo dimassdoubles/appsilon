@@ -26,9 +26,7 @@ class ProccessOrderButton extends StatelessWidget {
             child: Center(
               child: Text(
                 // Show loading if async operation is being performed
-                currentState.isPerformingAction
-                    ? "Loading..."
-                    : "Proses Transaksi",
+                currentState.isPerformingAction ? "Loading..." : "Proses Order",
                 style: AppText.semiBold16.copyWith(color: Colors.white),
               ),
             ),
