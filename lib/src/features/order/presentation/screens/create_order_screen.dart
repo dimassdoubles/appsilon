@@ -44,7 +44,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Order'),
+        title: const Text('Buat Pesanan'),
       ),
       extendBody: true,
       bottomNavigationBar: const SubmitOrderButton(),
@@ -77,7 +77,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                       const InputCustomer(),
                       const MediumSpace(),
                       Text(
-                        'Parfum',
+                        'Pewangi',
                         style:
                             AppText.semiBold16.copyWith(color: AppColor.grey),
                       ),

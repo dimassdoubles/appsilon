@@ -4,6 +4,7 @@ import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/features/authentication/presentation/blocs/auth_bloc.dart';
 import 'package:appsilon/src/localizations/string_harcoded.dart';
 import 'package:appsilon/src/routing/app_router.dart';
+import 'package:appsilon/src/shared/presentation/widgets/space/end_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/mini_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_container.dart';
@@ -27,7 +28,7 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Settings',
+          'Pengaturan',
         ),
         actions: [
           BlocListener<AuthBloc, AuthState>(
@@ -57,80 +58,83 @@ class SettingsScreen extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              'Services',
-              style: AppText.semiBold16.copyWith(color: AppColor.grey),
-            ),
-            const MiniSpace(),
-            StyledContainer(
-              child: Column(
-                children: ListTile.divideTiles(
-                  context: context,
-                  tiles: [
-                    ListTile(
-                      title: Text('Cuci setrika kiloan'.hardcoded),
-                    ),
-                    ListTile(
-                      title: Text('Cuci setrika satuan'.hardcoded),
-                    ),
-                    ListTile(
-                      title: Text('Setrika'.hardcoded),
-                    ),
-                    ListTile(
-                      title: Text('Langganan'.hardcoded),
-                    ),
-                  ],
-                ).toList(),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Text(
+                'Layanan',
+                style: AppText.semiBold16.copyWith(color: AppColor.grey),
               ),
-            ),
-            const RegularSpace(),
-            Text(
-              'Staff',
-              style: AppText.semiBold16.copyWith(color: AppColor.grey),
-            ),
-            const MiniSpace(),
-            StyledContainer(
-              child: Column(
-                children: ListTile.divideTiles(
-                  context: context,
-                  tiles: [
-                    ListTile(
-                      title: Text('Kelola staff'.hardcoded),
-                    ),
-                  ],
-                ).toList(),
+              const MiniSpace(),
+              StyledContainer(
+                child: Column(
+                  children: ListTile.divideTiles(
+                    context: context,
+                    tiles: [
+                      ListTile(
+                        title: Text('Cuci setrika kiloan'.hardcoded),
+                      ),
+                      ListTile(
+                        title: Text('Cuci setrika satuan'.hardcoded),
+                      ),
+                      ListTile(
+                        title: Text('Setrika'.hardcoded),
+                      ),
+                      // ListTile(
+                      //   title: Text('Langganan'.hardcoded),
+                      // ),
+                    ],
+                  ).toList(),
+                ),
               ),
-            ),
-            const RegularSpace(),
-            Text(
-              'Customers',
-              style: AppText.semiBold16.copyWith(color: AppColor.grey),
-            ),
-            const MiniSpace(),
-            StyledContainer(
-              child: Column(
-                children: ListTile.divideTiles(
-                  context: context,
-                  tiles: [
-                    ListTile(
-                      title: Text('Daftar Customer'.hardcoded),
-                      onTap: () =>
-                          context.router.push(const CustomerListRoute()),
-                    ),
-                    ListTile(
-                      title: Text('Tambah Customer'.hardcoded),
-                      onTap: () =>
-                          context.router.push(const AddCustomerRoute()),
-                    ),
-                  ],
-                ).toList(),
+              const RegularSpace(),
+              // Text(
+              //   'Staff',
+              //   style: AppText.semiBold16.copyWith(color: AppColor.grey),
+              // ),
+              // const MiniSpace(),
+              // StyledContainer(
+              //   child: Column(
+              //     children: ListTile.divideTiles(
+              //       context: context,
+              //       tiles: [
+              //         ListTile(
+              //           title: Text('Kelola staff'.hardcoded),
+              //         ),
+              //       ],
+              //     ).toList(),
+              //   ),
+              // ),
+              // const RegularSpace(),
+              Text(
+                'Pelanggan',
+                style: AppText.semiBold16.copyWith(color: AppColor.grey),
               ),
-            ),
-          ],
+              const MiniSpace(),
+              StyledContainer(
+                child: Column(
+                  children: ListTile.divideTiles(
+                    context: context,
+                    tiles: [
+                      ListTile(
+                        title: Text('Kelola Pelanggan'.hardcoded),
+                        onTap: () =>
+                            context.router.push(const CustomerListRoute()),
+                      ),
+                      // ListTile(
+                      //   title: Text('Tambah Pelanggan Baru'.hardcoded),
+                      //   onTap: () =>
+                      //       context.router.push(const AddCustomerRoute()),
+                      // ),
+                    ],
+                  ).toList(),
+                ),
+              ),
+              const EndSpace()
+            ],
+          ),
         ),
       ),
     );

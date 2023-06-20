@@ -12,6 +12,7 @@ class ServiceOrder {
   PaymentMethod? paymentMethod;
   int? paymentAmount;
   int? returnAmount;
+  int createDatetime;
 
   ServiceOrder({
     this.customer,
@@ -20,6 +21,7 @@ class ServiceOrder {
     this.paymentMethod,
     this.paymentAmount,
     this.returnAmount,
+    required this.createDatetime,
     required this.services,
   });
 }

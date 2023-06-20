@@ -3,8 +3,10 @@ import 'package:appsilon/src/features/customer/presentation/blocs/customer_bloc.
 import 'package:appsilon/src/features/customer/presentation/blocs/customer_event.dart';
 import 'package:appsilon/src/features/customer/presentation/blocs/customer_state.dart';
 import 'package:appsilon/src/features/customer/presentation/widgets/customer_card_with_edit_button.dart';
+import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/shared/presentation/widgets/space/regular_space.dart';
 import 'package:appsilon/src/shared/presentation/widgets/styled_text_form_field.dart';
+import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
@@ -42,7 +44,19 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Customer List')),
+      appBar: AppBar(
+        title: const Text('Daftar Pelanggan'),
+        actions: [
+          IconButton(
+              onPressed: () {
+                context.router.push(const AddCustomerRoute());
+              },
+              icon: const Icon(Icons.add)),
+          const RegularSpace(
+            orientation: Orientation.landscape,
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(AppSize.paddingRegular),
         child: Column(

@@ -4,6 +4,7 @@ import 'package:appsilon/src/features/customer/domain/models/customer.dart';
 import 'package:appsilon/src/features/order/domain/models/service_order.dart';
 import 'package:appsilon/src/features/order/domain/models/parfume.dart';
 import 'package:appsilon/src/features/order/domain/models/service.dart';
+import 'package:appsilon/src/utils/utils.dart';
 import 'package:bloc/bloc.dart';
 import 'package:injectable/injectable.dart';
 
@@ -18,7 +19,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
   void createOrder() {
     log("buat order");
     _reset();
-    emit(ServiceOrder(services: {}));
+    emit(ServiceOrder(services: {}, createDatetime: Utils.getCurrentEpoch()));
   }
 
   void setPaymentAmount(int paymentAmount) {
@@ -48,6 +49,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         parfume: state!.parfume,
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
+        createDatetime: state!.createDatetime,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
@@ -63,6 +65,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         parfume: state!.parfume,
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
+        createDatetime: state!.createDatetime,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
@@ -80,6 +83,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         parfume: state!.parfume,
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
+        createDatetime: state!.createDatetime,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
@@ -97,6 +101,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         parfume: state!.parfume,
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
+        createDatetime: state!.createDatetime,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
@@ -118,6 +123,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         parfume: state!.parfume,
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
+        createDatetime: state!.createDatetime,
         returnAmount: state!.returnAmount);
     emit(newState);
   }

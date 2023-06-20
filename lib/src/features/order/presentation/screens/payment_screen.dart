@@ -66,7 +66,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Payment')),
+        appBar: AppBar(title: const Text('Pembayaran')),
         body: Padding(
           padding:
               const EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),

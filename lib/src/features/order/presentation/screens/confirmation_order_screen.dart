@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/features/order/domain/models/service.dart';
 import 'package:appsilon/src/features/order/domain/models/service_order.dart';
@@ -40,6 +42,8 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
   void initState() {
     super.initState();
 
+    log(_serviceOrderCubit.state!.createDatetime.toString());
+
     _serviceOrderCubit.setPaymentMethod(null);
     _serviceOrderCubit.setPaymentAmount(0);
 
@@ -60,7 +64,7 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Confirmation Order')),
+        appBar: AppBar(title: const Text('Konfirmasi Pesanan')),
         extendBody: true,
         bottomNavigationBar: const Padding(
           padding: EdgeInsets.symmetric(horizontal: AppSize.paddingRegular),
@@ -98,14 +102,7 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [Text("Transaction Id"), Text("-")],
-                      ),
-                      const MiniSpace(
-                        orientation: Orientation.portrait,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [Text("Date"), Text('05 Juni 2023')],
+                        children: const [Text("Id Transaksi"), Text("-")],
                       ),
                       const MiniSpace(
                         orientation: Orientation.portrait,
@@ -113,7 +110,20 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("Parfume"),
+                          const Text("Tanggal"),
+                          Text(_serviceOrderCubit.state!.createDatetime != null
+                              ? Utils.epochToDisplayDate(
+                                  _serviceOrderCubit.state!.createDatetime)
+                              : "-"),
+                        ],
+                      ),
+                      const MiniSpace(
+                        orientation: Orientation.portrait,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Pewangi"),
                           Text(_serviceOrderCubit.state!.parfume != null
                               ? _serviceOrderCubit.state!.parfume!.parfumeName
                               : "-"),
@@ -214,22 +224,22 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
                           )),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () {},
-                        child: StyledContainer(
-                          border: _paymentMethod == PaymentMethod.nonTunai,
-                          width: 150,
-                          height: 150,
-                          child: Center(
-                              child: Text(
-                            "Non Tunai",
-                            style: AppText.semiBold16.copyWith(
-                                color: _paymentMethod == PaymentMethod.nonTunai
-                                    ? AppColor.lightBlue
-                                    : Colors.black),
-                          )),
-                        ),
-                      )
+                      // GestureDetector(
+                      //   onTap: () {},
+                      //   child: StyledContainer(
+                      //     border: _paymentMethod == PaymentMethod.nonTunai,
+                      //     width: 150,
+                      //     height: 150,
+                      //     child: Center(
+                      //         child: Text(
+                      //       "Non Tunai",
+                      //       style: AppText.semiBold16.copyWith(
+                      //           color: _paymentMethod == PaymentMethod.nonTunai
+                      //               ? AppColor.lightBlue
+                      //               : Colors.black),
+                      //     )),
+                      //   ),
+                      // )
                     ],
                   ),
                 ),

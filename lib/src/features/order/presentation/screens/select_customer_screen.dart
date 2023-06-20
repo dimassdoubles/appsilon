@@ -45,7 +45,7 @@ class _SelectCustomerScreenState extends State<SelectCustomerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Customer List')),
+      appBar: AppBar(title: const Text('Daftar Pelanggan')),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           context.router.push(const AddCustomerRoute());

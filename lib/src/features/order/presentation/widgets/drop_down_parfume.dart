@@ -29,7 +29,7 @@ class _DropDownParfumeState extends State<DropDownParfume> {
     DropdownMenuItem(
       value: null,
       child: Text(
-        'Pilih Parfum',
+        'Pilih Pewangi',
         style: AppText.semiBold16.copyWith(color: AppColor.black),
       ),
     )
