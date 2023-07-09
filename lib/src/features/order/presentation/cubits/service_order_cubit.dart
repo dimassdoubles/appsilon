@@ -19,7 +19,10 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
   void createOrder() {
     log("buat order");
     _reset();
-    emit(ServiceOrder(services: {}, createDatetime: Utils.getCurrentEpoch()));
+    emit(ServiceOrder(
+        services: {},
+        createDatetime: Utils.getCurrentEpoch(),
+        transactionCode: Utils.generateTransactionCode()));
   }
 
   void setPaymentAmount(int paymentAmount) {
@@ -50,13 +53,13 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
         createDatetime: state!.createDatetime,
+        transactionCode: state!.transactionCode,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
 
   void setPaymentMethod(PaymentMethod? paymentMethod) {
     state!.paymentMethod = paymentMethod;
-    log(state!.customer.toString());
 
     final newState = ServiceOrder(
         services: state!.services,
@@ -66,7 +69,9 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
         createDatetime: state!.createDatetime,
+        transactionCode: state!.transactionCode,
         returnAmount: state!.returnAmount);
+
     emit(newState);
   }
 
@@ -84,6 +89,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
         createDatetime: state!.createDatetime,
+        transactionCode: state!.transactionCode,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
@@ -102,6 +108,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
         createDatetime: state!.createDatetime,
+        transactionCode: state!.transactionCode,
         returnAmount: state!.returnAmount);
     emit(newState);
   }
@@ -124,6 +131,7 @@ class ServiceOrderCubit extends Cubit<ServiceOrder?> {
         paymentAmount: state!.paymentAmount,
         paymentMethod: state!.paymentMethod,
         createDatetime: state!.createDatetime,
+        transactionCode: state!.transactionCode,
         returnAmount: state!.returnAmount);
     emit(newState);
   }

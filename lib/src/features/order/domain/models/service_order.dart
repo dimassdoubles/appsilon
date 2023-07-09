@@ -13,6 +13,7 @@ class ServiceOrder {
   int? paymentAmount;
   int? returnAmount;
   int createDatetime;
+  String transactionCode;
 
   ServiceOrder({
     this.customer,
@@ -22,6 +23,7 @@ class ServiceOrder {
     this.paymentAmount,
     this.returnAmount,
     required this.createDatetime,
+    required this.transactionCode,
     required this.services,
   });
 }

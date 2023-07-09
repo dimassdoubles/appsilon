@@ -1,7 +1,10 @@
+import 'package:appsilon/src/routing/app_router.dart';
 import 'package:appsilon/src/themes/app_color.dart';
 import 'package:appsilon/src/themes/app_size.dart';
 import 'package:appsilon/src/themes/app_text.dart';
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:slide_action/slide_action.dart';
 
 class ProccessOrderButton extends StatelessWidget {
@@ -62,10 +65,20 @@ class ProccessOrderButton extends StatelessWidget {
           // Async operation
           await Future.delayed(
             const Duration(seconds: 2),
-            () => debugPrint("Hello World"),
+            () {
+              EasyLoading.showSuccess("Sukses menambahkan pesanan baru");
+            },
           );
+
+          await Future.delayed(const Duration(seconds: 1), () {
+            context.router.navigate(const HomeRoute());
+          });
         },
       ),
     );
   }
 }
+
+
+
+

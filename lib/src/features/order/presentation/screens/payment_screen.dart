@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:appsilon/injection.dart';
 import 'package:appsilon/src/features/order/domain/models/service_order.dart';
 import 'package:appsilon/src/features/order/presentation/cubits/service_order_cubit.dart';
@@ -337,6 +339,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       return CalculatorButton(
                         onTap: () {
                           if (_paymentAmount >= _total) {
+                            log("sampai sini");
                             _serviceOrderCubit
                                 .setPaymentMethod(PaymentMethod.tunai);
                             _serviceOrderCubit.setPaymentAmount(_paymentAmount);

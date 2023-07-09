@@ -4,6 +4,7 @@ class Utils {
   // - getCurrentEpoch
   // - formatToIdr
   // - epochToDisplayDate
+  // - generateTransactionCode
 
   // formatToIdr
   static String formatToIdr(num? amount) {
@@ -35,5 +36,15 @@ class Utils {
     String formattedDate = DateFormat('yyyy-MM-dd').format(date);
 
     return formattedDate;
+  }
+
+  // generateTransactionCode
+  static String generateTransactionCode() {
+    const prefix = "TRX";
+
+    DateTime now = DateTime.now();
+    int epoch = now.millisecondsSinceEpoch ~/ 1000;
+
+    return prefix + epoch.toString();
   }
 }

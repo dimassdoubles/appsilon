@@ -102,7 +102,13 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [Text("Id Transaksi"), Text("-")],
+                        children: [
+                          const Text("Kode Transaksi"),
+                          Text(
+                            Utils.generateTransactionCode(),
+                            style: AppText.bold16,
+                          )
+                        ],
                       ),
                       const MiniSpace(
                         orientation: Orientation.portrait,
@@ -111,10 +117,8 @@ class _ConfirmationOrderScreenState extends State<ConfirmationOrderScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text("Tanggal"),
-                          Text(_serviceOrderCubit.state!.createDatetime != null
-                              ? Utils.epochToDisplayDate(
-                                  _serviceOrderCubit.state!.createDatetime)
-                              : "-"),
+                          Text(Utils.epochToDisplayDate(
+                              _serviceOrderCubit.state!.createDatetime)),
                         ],
                       ),
                       const MiniSpace(
